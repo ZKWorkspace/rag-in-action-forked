@@ -5,14 +5,14 @@ from llama_index.embeddings.openai import OpenAIEmbedding # 导入 OpenAI Embedd
 
 # --- 开始配置你的自定义 API 地址和密钥 ---
 # 请将下面的 placeholder 替换为你的实际 API Base URL 和 API Key
-custom_api_base_url = "https://vip.apiyi.com/v1"  
-custom_api_key = "XXX"            # 例如: "sk-yourkeyvalue"
+custom_api_base_url = "https://api.o3.fan/v1"  
+custom_api_key = "sk-oluI9laKAt1VTCE0885b8f48296f43C5988f10D261971dD5"            # 例如: "sk-yourkeyvalue"
 
 # (可选) 确认你的第三方 API 支持并需要使用的模型名称
 
 # OpenAI 默认模型:
-llm_model_name = "gpt-4" # 或者你的 API 支持的其他聊天模型
-embedding_model_name = "text-embedding-ada-002" # 或者你的 API 支持的其他嵌入模型
+llm_model_name = "gpt-4o" # 或者你的 API 支持的其他聊天模型
+embedding_model_name = "text-embedding-3-small" # 或者你的 API 支持的其他嵌入模型
 
 # 通过代码直接配置 (推荐，更清晰)
 # 配置全局的 LLM (用于问答生成)
@@ -54,13 +54,24 @@ print("正在构建索引...")
 index = VectorStoreIndex.from_documents(documents)
 print("索引构建完成。")
 
+# 打印向量化后的内容
+print("\n=== 向量化后的内容 ===")
+# 获取所有节点
+all_nodes = index.docstore.docs
+print(f"索引中共有 {len(all_nodes)} 个节点")
+for i, (node_id, node) in enumerate(all_nodes.items(), 1):
+    # print(f"\n--- 第 {i} 个节点 ---")
+    print(f"节点ID: {node_id}")
+    print(f"内  容:{node.text}")
+    print("-" * 100)
+
 # 第四行代码：创建问答引擎
 # as_query_engine() 会自动使用 Settings 中配置的 llm (以及 embedding_model 用于对查询进行编码)。
 query_engine = index.as_query_engine()
 print("问答引擎已创建。")
 
 # 第五行代码: 开始问答
-question = "黑神话悟空中有哪些战斗工具?"
+question = "黑神话悟空中有哪些战斗工具?如果你不清楚这个问题，请用简短且幽默的中文回答我"
 print(f"\n正在查询: {question}")
 response = query_engine.query(question)
 print("\n回答:")

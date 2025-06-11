@@ -24,9 +24,14 @@ from dotenv import load_dotenv
 # 加载环境变量
 load_dotenv()
 
-from langchain_community.document_loaders import WebBaseLoader
-loader = WebBaseLoader(
-    web_paths=("https://zh.wikipedia.org/wiki/黑神话：悟空",)
+# from langchain_community.document_loaders import WebBaseLoader
+# loader = WebBaseLoader(
+#     web_paths=("https://zh.wikipedia.org/wiki/黑神话：悟空",)
+# )
+# docs = loader.load()
+from langchain_community.document_loaders import UnstructuredHTMLLoader
+loader = UnstructuredHTMLLoader(
+    "/home/zorn/Workspace/2025/培训与考试/直播_黄佳_企业落地RAG时的难点与痛点/4小时快速上手RAG/4/黑神话悟空-维基百科自由的百科全书.html"
 )
 docs = loader.load()
 
@@ -50,7 +55,7 @@ vector_store = InMemoryVectorStore(embeddings)
 vector_store.add_documents(all_splits)
 
 # 5. 构建用户查询
-question = "黑悟空有哪些游戏场景？"
+question = "黑悟空有哪些故事章节？"
 
 # 6. 在向量存储中搜索相关文档，并准备上下文内容
 retrieved_docs = vector_store.similarity_search(question, k=3)
@@ -68,6 +73,6 @@ prompt = ChatPromptTemplate.from_template("""
 
 # 8. 使用大语言模型生成答案
 from langchain_ollama import ChatOllama # pip install langchain-ollama
-llm = ChatOllama(model=os.getenv("OLLAMA_MODEL"))
+llm = ChatOllama(model="deepseek-r1:1.5b", base_url=os.getenv("OLLAMA_URL_BASE"))
 answer = llm.invoke(prompt.format(question=question, context=docs_content))
 print(answer.content)

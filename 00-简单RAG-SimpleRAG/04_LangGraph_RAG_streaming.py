@@ -79,6 +79,11 @@ graph = (
 
 # 10. 运行查询
 question = "黑神话悟空有哪些故事章节？"
-response = graph.invoke({"question": question})
 print(f"\n问题: {question}")
-print(f"\n答案: {response['answer']}")
+# response = graph.invoke({"question": question})
+# print(f"\n答案: {response['answer']}")
+print("\n答案:")
+for message, metadata in graph.stream(
+    {"question": question}, stream_mode="messages"
+):
+    print(message.content, end="|")

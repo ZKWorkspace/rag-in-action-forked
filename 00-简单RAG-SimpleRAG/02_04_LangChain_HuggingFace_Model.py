@@ -1,8 +1,14 @@
 # 1. 加载文档
-from langchain_community.document_loaders import WebBaseLoader # pip install beautifulsoup4
+# from langchain_community.document_loaders import WebBaseLoader # pip install beautifulsoup4
 
-loader = WebBaseLoader(
-    web_paths=("https://zh.wikipedia.org/wiki/黑神话：悟空",)
+# loader = WebBaseLoader(
+#     web_paths=("https://zh.wikipedia.org/wiki/黑神话：悟空",)
+# )
+# docs = loader.load()
+
+from langchain_community.document_loaders import UnstructuredHTMLLoader
+loader = UnstructuredHTMLLoader(
+    "/home/zorn/Workspace/2025/培训与考试/直播_黄佳_企业落地RAG时的难点与痛点/4小时快速上手RAG/4/黑神话悟空-维基百科自由的百科全书.html"
 )
 docs = loader.load()
 
@@ -13,6 +19,9 @@ text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=20
 all_splits = text_splitter.split_documents(docs)
 
 # 3. 设置嵌入模型
+import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com' # 如果万一被屏蔽，可以设置镜像
+
 from langchain_huggingface import HuggingFaceEmbeddings
 
 embeddings = HuggingFaceEmbeddings(
@@ -28,7 +37,7 @@ vector_store = InMemoryVectorStore(embeddings)
 vector_store.add_documents(all_splits)
 
 # 5. 构建用户查询
-question = "黑悟空有哪些游戏场景？"
+question = "黑悟空有哪些故事章节？"
 
 # 6. 在向量存储中搜索相关文档，并准备上下文内容
 retrieved_docs = vector_store.similarity_search(question, k=3)
@@ -46,9 +55,10 @@ prompt = ChatPromptTemplate.from_template("""
                                           )
 
 # 8. 使用大语言模型生成答案
-from langchain_community.llms.huggingface_pipeline import HuggingFacePipeline
+# from langchain_community.llms.huggingface_pipeline import HuggingFacePipeline # Deprecated
+from langchain_huggingface import HuggingFacePipeline
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
-import torch
+# import torch
 
 # 加载模型和分词器
 model_name = "Qwen/Qwen2.5-1.5B"
@@ -57,6 +67,11 @@ model = AutoModelForCausalLM.from_pretrained(model_name,
                                              trust_remote_code=True, 
                                             #  device_map='auto'
                                              )
+# Fix warning: 
+# `do_sample` is set to `False`. However, `temperature` is set to `0.7` 
+# -- this flag is only used in sample-based generation modes.
+# You should set `do_sample=True` or unset `temperature`.
+model.generation_config.do_sample=True
 
 # 创建pipeline
 pipe = pipeline(

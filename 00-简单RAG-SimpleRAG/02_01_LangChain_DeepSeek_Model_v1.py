@@ -18,6 +18,14 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 all_splits = text_splitter.split_documents(docs)
 
+# 打印所有分割后的文本内容
+print("\n=== 分割后的文本内容 ===")
+print(f"总共分割成 {len(all_splits)} 个文本块")
+for i, split in enumerate(all_splits, 1):
+    print(f"\n--- 第 {i} 个文本块 ---")
+    print(f"内容:\n{split.page_content}")
+    print("-" * 100)
+
 # 3. 设置嵌入模型
 from langchain_huggingface import HuggingFaceEmbeddings # pip install langchain-huggingface
 
@@ -34,7 +42,7 @@ vector_store = InMemoryVectorStore(embeddings)
 vector_store.add_documents(all_splits)
 
 # 5. 构建用户查询
-question = "黑悟空有哪些游戏场景？"
+question = "请列举黑神话所取得的所有奖项？"
 
 # 6. 在向量存储中搜索相关文档，并准备上下文内容
 retrieved_docs = vector_store.similarity_search(question, k=3)
