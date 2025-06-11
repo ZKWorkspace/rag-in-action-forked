@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv() # 加载.env文件中的环境变量
 import numpy as np
 from datasets import Dataset
 from ragas.metrics import Faithfulness, AnswerRelevancy
@@ -11,9 +11,11 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from ragas import evaluate
 
 # 准备评估用的LLM（使用GPT-3.5）
+# 使用Ragas的LangchainLLMWrapper包装器来包装LangChain的ChatOpenAI模型
 llm = LangchainLLMWrapper(ChatOpenAI(model_name="gpt-3.5-turbo"))
 
 # 准备数据集
+# 这个数据集包含了问题、生成的答案以及相关的上下文信息
 data = {
     "question": [
         "Who is the main character in Black Myth: Wukong?",
@@ -41,6 +43,7 @@ data = {
     ]
 }
 
+# 将字典转换为Hugging Face的Dataset对象，方便Ragas处理
 dataset = Dataset.from_dict(data)
 
 print("\n=== Ragas评估指标说明 ===")
@@ -50,10 +53,14 @@ print("- 通过将答案分解为简单陈述，然后验证每个陈述是否�
 print("- 该指标仅依赖LLM，不需要embedding模型")
 
 # 评估Faithfulness
+# 创建Faithfulness评估指标，它只需要一个LLM来进行评估
 faithfulness_metric = [Faithfulness(llm=llm)] # 只需要提供生成模型
 print("\n正在评估忠实度...")
+# 使用evaluate函数对数据集进行评估
 faithfulness_result = evaluate(dataset, faithfulness_metric)
+# 提取忠实度分数
 scores = faithfulness_result['faithfulness']
+# 计算平均分
 mean_score = np.mean(scores) if isinstance(scores, (list, np.ndarray)) else scores
 print(f"忠实度评分: {mean_score:.4f}")
 
@@ -63,23 +70,29 @@ print(f"忠实度评分: {mean_score:.4f}")
 # print("- 我们将比较开源embedding模型和OpenAI的embedding模型")
 
 # 设置两种embedding模型
+# 使用Ragas的LangchainEmbeddingsWrapper来包装LangChain的嵌入模型
+# 1. 开源的 all-MiniLM-L6-v2 模型
 opensource_embedding = LangchainEmbeddingsWrapper(
     HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 )
+# 2. OpenAI的 text-embedding-ada-002 模型
 openai_embedding = LangchainEmbeddingsWrapper(OpenAIEmbeddings(model="text-embedding-ada-002"))
 
 # 创建答案相关性评估指标
+# 分别为两种embedding模型创建AnswerRelevancy评估指标
 opensource_relevancy = [AnswerRelevancy(llm=llm, embeddings=opensource_embedding)]
 openai_relevancy = [AnswerRelevancy(llm=llm, embeddings=openai_embedding)]
 
 print("\n正在评估答案相关性...")
 print("\n使用开源Embedding模型评估:")
+# 使用开源embedding模型进行评估
 opensource_result = evaluate(dataset, opensource_relevancy)
 scores = opensource_result['answer_relevancy']
 opensource_mean = np.mean(scores) if isinstance(scores, (list, np.ndarray)) else scores
 print(f"相关性评分: {opensource_mean:.4f}")
 
 print("\n使用OpenAI Embedding模型评估:")
+# 使用OpenAI embedding模型进行评估
 openai_result = evaluate(dataset, openai_relevancy)
 scores = openai_result['answer_relevancy']
 openai_mean = np.mean(scores) if isinstance(scores, (list, np.ndarray)) else scores

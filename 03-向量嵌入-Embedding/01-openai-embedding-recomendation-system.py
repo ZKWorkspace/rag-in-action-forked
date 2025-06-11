@@ -6,10 +6,10 @@ import json
 from sklearn.metrics.pairwise import cosine_similarity
 
 # 读取用户评价数据集
-df = pd.read_csv("data/灭神纪/用户评论.csv")
+df = pd.read_csv("90-文档-Data/灭神纪/用户评价.csv")
 
 # 读取游戏描述文件
-with open("data/灭神纪/游戏说明.json", "r") as f:
+with open("90-文档-Data/灭神纪/游戏说明.json", "r") as f:
     game_descriptions = json.load(f)
 
 # 定义函数获取嵌入向量
