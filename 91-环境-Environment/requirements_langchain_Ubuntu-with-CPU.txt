@@ -260,3 +260,4 @@ youtube-transcript-api==0.6.3
 zipp==3.21.0
 zstandard==0.23.0
 milvus-model==0.2.12
+llmlingua==0.2.2
