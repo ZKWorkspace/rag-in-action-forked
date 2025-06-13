@@ -64,10 +64,10 @@ scores = faithfulness_result['faithfulness']
 mean_score = np.mean(scores) if isinstance(scores, (list, np.ndarray)) else scores
 print(f"忠实度评分: {mean_score:.4f}")
 
-# print("\n2. AnswerRelevancy（答案相关性）")
-# print("- 评估生成的答案与问题的相关程度")
-# print("- 使用embedding模型计算语义相似度")
-# print("- 我们将比较开源embedding模型和OpenAI的embedding模型")
+print("\n2. AnswerRelevancy（答案相关性）")
+print("- 评估生成的答案与问题的相关程度")
+print("- 使用embedding模型计算语义相似度")
+print("- 我们将比较开源embedding模型和OpenAI的embedding模型")
 
 # 设置两种embedding模型
 # 使用Ragas的LangchainEmbeddingsWrapper来包装LangChain的嵌入模型
