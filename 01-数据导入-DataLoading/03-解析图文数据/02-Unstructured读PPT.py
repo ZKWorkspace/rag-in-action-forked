@@ -25,6 +25,7 @@ Document(page_content=element.text,
 ]
 
 # 输出转换后的 Documents
-print(documents[0:3])
+# print(documents[0:3])
+print(documents)
 
 
