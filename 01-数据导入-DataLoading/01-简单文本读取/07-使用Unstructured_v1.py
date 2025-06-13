@@ -3,6 +3,7 @@ text = "90-文档-Data/黑悟空/设定.txt"
 elements = partition_text(text)
 for element in elements:
     print(element)
+    print("-" * 100)
 
 # 通过vars函数查看所有可用的元数据
 for i, element in enumerate(elements):

@@ -37,9 +37,16 @@ nltk 库需要下载一些额外的数据包（如分词器、词性标注器等
 import nltk
 nltk.download('averaged_perceptron_tagger') 
 nltk.download('punkt') 
+
+#以来安装
+ pip install "unstructured[md]" "unstructured[image]" "unstructured[pptx]"
 """
 import os
 from langchain_community.document_loaders import DirectoryLoader
+
+# Fix Error: huggingface.co is unreachable, layout parsing task 
+# uses yolox_l0.05 model.
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
 
 # 获取当前脚本文件所在的目录
 script_dir = os.path.dirname(__file__)
@@ -50,4 +57,7 @@ data_dir = os.path.join(script_dir, '../../90-文档-Data/黑悟空')
 loader = DirectoryLoader(data_dir)
 docs = loader.load()
 print(f"文档数：{len(docs)}")  # 输出文档总数
-print(docs[0])  # 输出第一个文档
+# print(docs[0])  # 输出第一个文档
+for doc in docs:
+    print(doc)
+    print("-"*100)

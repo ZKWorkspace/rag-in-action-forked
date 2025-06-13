@@ -9,7 +9,7 @@ data_dir = os.path.join(script_dir, '../../90-文档-Data/黑悟空')
 
 # 加载目录下所有 Markdown 文件
 loader = DirectoryLoader(data_dir,
-                          silent_errors=True,
+                          silent_errors=True, # Do not work: Error loading file /mnt/c/Workspace/github/rag-in-action-forked/01-数据导入-DataLoading/01-简单文本读取/../../90-文档-Data/黑悟空/黑悟空英文.jpg
                          loader_cls=TextLoader
                          )
 

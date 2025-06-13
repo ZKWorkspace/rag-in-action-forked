@@ -8,7 +8,7 @@ for element in elements:
 for i, element in enumerate(elements):
     print(f"\n--- Element {i+1} ---")
     print(f"类型: {type(element)}")
-    print(f"元素类: {element.__class__.__name__}")
+    print(f"元素类型: {element.__class__.__name__}")
     print(f"文本内容: {element.text}")
     
     if hasattr(element, 'metadata'):
