@@ -268,3 +268,4 @@ trulens==1.5.1
 trulens-providers-openai==1.5.1
 deepeval==3.0.8
 weaviate==0.1.2
+weaviate-client==4.10.4
