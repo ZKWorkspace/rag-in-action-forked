@@ -81,3 +81,4 @@ codebase_chunks.json
 evaluation_set.jsonl
 .contextual.db.lock
 .standard.db.lock
+*-vis

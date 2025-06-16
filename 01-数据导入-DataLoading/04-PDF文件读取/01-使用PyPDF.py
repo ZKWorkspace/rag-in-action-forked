@@ -5,3 +5,4 @@ pages = loader.load()
 print(f"加载了 {len(pages)} 页PDF文档")
 for page in pages:
     print(page.page_content)
+    print("-" * 100)

@@ -3,6 +3,8 @@
 # sudo apt-get install tesseract-ocr-chi-sim
 
 import pdf2image
+# Fix Error: ModuleNotFoundError: No module named 'pytesseract'
+# pip install pytesseract
 import pytesseract
 import os
 
@@ -20,4 +22,9 @@ for i, image in enumerate(images):
     text = pytesseract.image_to_string(image, lang='chi_sim')
     print(f"第 {i+1} 页文本:")
     print(text)
-    print("\n") 
+    print("-" * 100)
+# Note: 输出效果看没有PyMuPDF好
+
+# 清理临时文件
+import shutil
+shutil.rmtree(output_dir)
