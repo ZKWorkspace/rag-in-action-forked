@@ -11,7 +11,7 @@ pdf = pdfplumber.open("90-文档-Data/复杂PDF/billionaires_page-1-5.pdf")
 # 遍历每一页
 for page in pdf.pages:
     # 提取表格
-    tables = page.extract_tables()
+    tables = page.extract_tables() # 具备提取非规则布局表格的能力
     
     # 检查是否找到表格
     if tables:

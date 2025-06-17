@@ -29,7 +29,9 @@ file_path = "90-文档-Data/黑悟空/黑神话悟空.csv"
 # loader = CSVLoader(file_path=file_path, source_column="Name")
 # data = loader.load()
 
-# print("示例 3: 使用 'Name' 列作为主要内容来源")
+# # print("示例 3: 使用 'Name' 列作为主要内容来源")
+# print("""示例 3: 使用 'Name' 列作为主要内容来源,
+#       即page_content不变，metadata中source字段改为'Name'列的内容""")
 # for record in data[:2]:
 #     print(record)
 # print("-" * 80)
@@ -40,5 +42,5 @@ from langchain_community.document_loaders import UnstructuredCSVLoader
 loader = UnstructuredCSVLoader(file_path=file_path)
 data = loader.load()
 print("示例 4: 使用 UnstructuredCSVLoader 加载文件")
-print(data)
+print(data) # data只有一个Document实例，page_content包含列头和所有行内容，按空格分隔
 print("-" * 80)

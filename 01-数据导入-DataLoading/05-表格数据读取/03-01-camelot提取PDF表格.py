@@ -1,9 +1,11 @@
-import camelot
+import os
+import camelot # pip install camelot-py
 import pandas as pd
 # from ctypes.util import find_library
 # find_library("gs")
 
 pdf_path = "90-文档-Data/复杂PDF/billionaires_page-1-5.pdf"
+file_dir = os.path.dirname(pdf_path)
 import time
 
 start_time = time.time()
@@ -27,6 +29,6 @@ if tables:
         print(df.info())
         
         # 保存到CSV文件
-        csv_filename = f"billionaires_table_{i}.csv"
+        csv_filename = f"{file_dir}/billionaires_table_{i}.csv"
         df.to_csv(csv_filename, index=False)
         print(f"\n表格 {i} 数据已保存到 {csv_filename}")
