@@ -1,3 +1,4 @@
+import os
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -7,13 +8,22 @@ from dotenv import load_dotenv
 
 # 加载环境变量
 load_dotenv()
+model_provider_api_key = os.getenv("O3_API_KEY")
+model_provider_url_base = os.getenv("O3_URL_BASE")
 
 # 初始化 OpenAI 模型
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-llm = ChatOpenAI(model="gpt-3.5-turbo-0125", temperature=0)
+embeddings = OpenAIEmbeddings(
+    model="text-embedding-3-small",
+    api_key=model_provider_api_key,
+    base_url=model_provider_url_base)
+llm = ChatOpenAI(
+    model="gpt-4o",
+    api_key=model_provider_api_key,
+    base_url=model_provider_url_base,
+    temperature=0)
 
 # 加载 PDF 文件
-loader = PyPDFLoader("data/PDF/uber_10q_march_2022.pdf")
+loader = PyPDFLoader("90-文档-Data/复杂PDF/uber_10q_march_2022.pdf")
 documents = loader.load()
 
 # 文本分割
@@ -39,8 +49,8 @@ qa_chain = RetrievalQA.from_chain_type(
 
 # 查询示例
 query = "What is the change of free cash flow and what is the rate from the financial and operational highlights?"
-query = "how many COVID-19 response initiatives (In millions) in year 2021?"
-query = "After the year of COVID-19, how much EBITDA profit improved?"
+# query = "how many COVID-19 response initiatives (In millions) in year 2021?"
+# query = "After the year of COVID-19, how much EBITDA profit improved?"
 
 response = qa_chain.invoke({"query": query})
 

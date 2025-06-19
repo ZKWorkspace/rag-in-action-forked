@@ -9,8 +9,18 @@ load_dotenv()
 
 import os
 
-embed_model = OpenAIEmbedding(model="text-embedding-3-small")
-llm = OpenAI(model="gpt-3.5-turbo-0125")
+model_provider_api_key = os.getenv("O3_API_KEY")
+model_provider_url_base = os.getenv("O3_URL_BASE")
+embed_model = OpenAIEmbedding(
+    model="text-embedding-3-small",
+    api_key=model_provider_api_key,
+    api_base=model_provider_url_base
+)
+llm = OpenAI(
+    model="gpt-4o",
+    api_key=model_provider_api_key,
+    api_base=model_provider_url_base
+)
 
 Settings.llm = llm
 Settings.embed_model = embed_model
@@ -18,7 +28,7 @@ Settings.embed_model = embed_model
 # Load PDF using standard PDFReader
 loader = PDFReader()
 documents = loader.load_data(
-    file="data/PDF/uber_10q_march_2022.pdf"
+    file="90-文档-Data/复杂PDF/uber_10q_march_2022.pdf"
 )
 
 # Create index directly from documents
@@ -31,8 +41,8 @@ query_engine = index.as_query_engine(
 )
 
 query = "What is the change of free cash flow and what is the rate from the financial and operational highlights?"
-query = "how many COVID-19 response initiatives in year 2021?"
-query = "how much the COVID-19 response initiatives inpact the EBITDA?" # 重塑问题的重要性
+# query = "how many COVID-19 response initiatives in year 2021?"
+# query = "how much the COVID-19 response initiatives inpact the EBITDA?" # 重塑问题的重要性
 # query = "After the year of COVID-19, how much EBITDA profit improved?"
 # query = "What is the Adjusted EBITDA loss in year COVID-19?"
 # query = "how much is the Loss from operations?"

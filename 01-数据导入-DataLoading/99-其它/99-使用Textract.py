@@ -1,5 +1,5 @@
-import textract
-text = textract.process("data/黑悟空/黑神话悟空.pdf")
+import textract # pip install textract==1.6.3
+text = textract.process("90-文档-Data/黑悟空/黑神话悟空.pdf")
 print(text)
 
 # Textract 与 PyMuPDF、Unstructured 对比:
