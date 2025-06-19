@@ -10,8 +10,18 @@ load_dotenv()
 
 import os
 
-embed_model = OpenAIEmbedding(model="text-embedding-3-small")
-llm = OpenAI(model="gpt-3.5-turbo-0125")
+model_provider_api_key = os.getenv("O3_API_KEY")
+model_provider_url_base = os.getenv("O3_URL_BASE")
+embed_model = OpenAIEmbedding(
+    model="text-embedding-3-small",
+    api_key=model_provider_api_key,
+    api_base=model_provider_url_base
+)
+llm = OpenAI(
+    model="gpt-4o",
+    api_key=model_provider_api_key,
+    api_base=model_provider_url_base
+)
 
 Settings.embed_model = embed_model
 Settings.llm = llm

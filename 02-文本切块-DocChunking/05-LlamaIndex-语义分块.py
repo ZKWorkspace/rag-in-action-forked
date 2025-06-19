@@ -9,10 +9,17 @@ from llama_index.embeddings.openai import OpenAIEmbedding
 documents = SimpleDirectoryReader(input_files=["90-文档-Data/黑悟空/黑悟空wiki.txt"]).load_data()
 
 # 创建语义分块器
+import os
+from dotenv import load_dotenv
+load_dotenv
 splitter = SemanticSplitterNodeParser(
     buffer_size=3,  # 缓冲区大小
     breakpoint_percentile_threshold=90, # 断点百分位阈值
-    embed_model=OpenAIEmbedding()     # 使用的嵌入模型
+    embed_model=OpenAIEmbedding(
+        model="text-embedding-3-small",
+        api_key=os.getenv("O3_API_KEY"),
+        api_base=os.getenv("O3_URL_BASE")
+    )     # 使用的嵌入模型
 )
 # 创建基础句子分块器（作为对照）
 base_splitter = SentenceSplitter(
