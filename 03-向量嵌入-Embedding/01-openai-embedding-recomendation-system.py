@@ -13,6 +13,8 @@ with open("90-文档-Data/灭神纪/游戏说明.json", "r") as f:
     game_descriptions = json.load(f)
 
 # 定义函数获取嵌入向量
+from dotenv import load_dotenv
+load_dotenv()
 def get_embedding(text, model="text-embedding-3-small"):
     response = openai.embeddings.create(
         input=[text],
@@ -36,17 +38,17 @@ for user_id, group in df.groupby("user_id"):
     user_game_vecs = []
     for idx, row in group.iterrows():
         g_title = row['game_title']
-        g_vec = game_embeddings[g_title]
-        user_game_vecs.append(g_vec)
-    user_vectors[user_id] = np.mean(np.array(user_game_vecs), axis=0)
+        g_vec = game_embeddings[g_title] # Shape of g_vec is (1536,)
+        user_game_vecs.append(g_vec) # Shape of user_game_vecs is (n, 1536)
+    user_vectors[user_id] = np.mean(np.array(user_game_vecs), axis=0) # shape of user_vectors[user_id] is (1536,)
 
 # 获取“灭神纪·猢狲”的嵌入向量
 target_vector = game_embeddings[target_game]
 # 计算每个用户评价的嵌入向量与目标游戏的嵌入向量的余弦相似度
 results = []
 for user_id, u_vec in user_vectors.items():
-    u_vec_reshaped = u_vec.reshape(1, -1)
-    t_vec = target_vector.reshape(1, -1)
+    u_vec_reshaped = u_vec.reshape(1, -1) # Shape of u_vec_reshaped is (1, 1536)
+    t_vec = target_vector.reshape(1, -1)  # Shape of t_vec is (1, 1536)
     similarity = cosine_similarity(u_vec_reshaped, t_vec)[0,0]
     results.append((user_id, similarity))
     

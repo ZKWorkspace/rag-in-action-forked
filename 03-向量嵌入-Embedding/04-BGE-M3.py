@@ -1,4 +1,5 @@
-from FlagEmbedding import BGEM3FlagModel
+from FlagEmbedding import BGEM3FlagModel # pip install FlagEmbedding
+# export HF_ENDPOINT=https://hf-mirror.com
 
 def main():
     model = BGEM3FlagModel("BAAI/bge-m3", use_fp16=False)
