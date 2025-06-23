@@ -20,7 +20,7 @@ from llama_index.llms.openai import OpenAI
 llm = OpenAI(
     model="gpt-4o",
     api_key=os.getenv("O3_API_KEY"),
-    api_base=os.getenv("O3_URL_BASE"),
+    api_base=os.getenv("O3_BASE_URL"),
     # 如果你的 API 端点有其他需要传递的参数，可以在这里添加
     # 例如: temperature=0.7
 )

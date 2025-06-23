@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 # 加载环境变量
 load_dotenv()
 model_provider_api_key = os.getenv("O3_API_KEY")
-model_provider_url_base = os.getenv("O3_URL_BASE")
+model_provider_url_base = os.getenv("O3_BASE_URL")
 
 # 初始化 OpenAI 模型
 embeddings = OpenAIEmbeddings(

@@ -18,7 +18,7 @@ splitter = SemanticSplitterNodeParser(
     embed_model=OpenAIEmbedding(
         model="text-embedding-3-small",
         api_key=os.getenv("O3_API_KEY"),
-        api_base=os.getenv("O3_URL_BASE")
+        api_base=os.getenv("O3_BASE_URL")
     )     # 使用的嵌入模型
 )
 # 创建基础句子分块器（作为对照）

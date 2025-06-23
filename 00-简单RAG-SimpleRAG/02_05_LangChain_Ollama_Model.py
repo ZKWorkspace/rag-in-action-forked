@@ -73,6 +73,6 @@ prompt = ChatPromptTemplate.from_template("""
 
 # 8. 使用大语言模型生成答案
 from langchain_ollama import ChatOllama # pip install langchain-ollama
-llm = ChatOllama(model="deepseek-r1:1.5b", base_url=os.getenv("OLLAMA_URL_BASE"))
+llm = ChatOllama(model="deepseek-r1:1.5b", base_url=os.getenv("OLLAMA_BASE_URL"))
 answer = llm.invoke(prompt.format(question=question, context=docs_content))
 print(answer.content)

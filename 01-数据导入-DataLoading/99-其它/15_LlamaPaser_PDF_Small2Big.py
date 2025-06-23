@@ -13,7 +13,7 @@ import os
 os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
 
 model_provider_api_key = os.getenv("O3_API_KEY")
-model_provider_url_base = os.getenv("O3_URL_BASE")
+model_provider_url_base = os.getenv("O3_BASE_URL")
 embed_model = OpenAIEmbedding(
     model="text-embedding-3-small",
     api_key=model_provider_api_key,

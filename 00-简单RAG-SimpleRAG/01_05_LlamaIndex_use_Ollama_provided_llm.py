@@ -29,7 +29,7 @@ import os
 
 # 加载环境变量
 load_dotenv()
-ollama_url_base = os.getenv("OLLAMA_URL_BASE")
+ollama_url_base = os.getenv("OLLAMA_BASE_URL")
 ollama_llm_model = "deepseek-r1:1.5b"
 ollama_embed_model = "bge-m3:latest"
 

@@ -9,7 +9,7 @@ from typing import List
 
 load_dotenv()
 model_provider_api_key = os.getenv("O3_API_KEY")
-model_provider_url_base = os.getenv("O3_URL_BASE")
+model_provider_url_base = os.getenv("O3_BASE_URL")
 Settings.llm  = OpenAI(model="gpt-4o", 
                        api_key=model_provider_api_key,
                        api_base=model_provider_url_base)

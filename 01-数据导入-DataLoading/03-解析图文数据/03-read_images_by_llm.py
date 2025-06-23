@@ -16,7 +16,7 @@ from langchain_core.prompts import ChatPromptTemplate
 # client = OpenAI()
 load_dotenv()
 model_provider_api_key = os.getenv("GITEE_API_KEY")
-model_provider_url_base = os.getenv("GITEE_URL_BASE")
+model_provider_url_base = os.getenv("GITEE_BASE_URL")
 print(f"Model provider api key : {model_provider_api_key}")
 print(f"Model provider url base: {model_provider_url_base}")
 client = ChatOpenAI(

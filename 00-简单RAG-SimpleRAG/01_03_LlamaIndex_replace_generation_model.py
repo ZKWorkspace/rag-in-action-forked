@@ -18,7 +18,7 @@ import os
 # 加载 .env 文件中的环境变量
 load_dotenv()
 model_provider_api_key = os.getenv("O3_API_KEY")
-model_provider_url_base = os.getenv("O3_URL_BASE")
+model_provider_url_base = os.getenv("O3_BASE_URL")
 print(f"Model provider api key : {model_provider_api_key}")
 print(f"Model provider url base: {model_provider_url_base}")
 
