@@ -5,6 +5,8 @@ https://github.com/FlagOpen/FlagEmbedding/tree/master/research/visual_bge#readme
 
 # 如果下载安装visual_bge后，依然无法使用，请切换到物理环境使用，虚拟环境可能无法使用
 """
+import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
 
 import torch
 from visual_bge.modeling import Visualized_BGE
@@ -16,7 +18,10 @@ model_name = "BAAI/bge-base-en-v1.5"
 # 定义模型路径（如果有问题，请使用绝对路径）
 # 请提前下载模型权重文件
 # wget https://huggingface.co/BAAI/bge-visualized/resolve/main/Visualized_base_en_v1.5.pth
-model_path = "/home/zorn/Workspace/github/rag-in-action-forked/03-向量嵌入-Embedding/Visualized_base_en_v1.5.pth"
+# or
+# from huggingface_hub import snapshot_download
+# model_path = snapshot_download(repo_id="BAAI/bge-visualized")
+model_path = "/home/zorn/.cache/huggingface/hub/models--BAAI--bge-visualized/snapshots/adc579b9b84a865c07e9164d5528aa748fe6227e/Visualized_base_en_v1.5.pth"
 model = Visualized_BGE(model_name_bge=model_name, model_weight=model_path)
 model.eval()
 
