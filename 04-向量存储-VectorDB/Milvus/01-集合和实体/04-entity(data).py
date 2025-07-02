@@ -64,6 +64,8 @@ res = client.delete(
 print("\n删除结果:", res)
 
 # 5. 查询实体
+client.flush(collection_name="quick_setup") # 刷新内存
+client.load(collection_name="quick_setup") # 加载到内存
 res = client.query(
     collection_name="quick_setup",
     filter="id in [1,2]",
