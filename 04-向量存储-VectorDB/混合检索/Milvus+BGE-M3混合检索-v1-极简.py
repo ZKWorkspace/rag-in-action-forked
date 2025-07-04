@@ -1,3 +1,5 @@
+import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
 import json
 import time
 from milvus_model.hybrid import BGEM3EmbeddingFunction
@@ -15,10 +17,11 @@ from pymilvus.exceptions import MilvusException
 import scipy.sparse # 确保已安装 scipy
 
 # 0. 配置 (方便修改)
-DATA_PATH = "/root/AI-BOX/code/rag/rag-in-action/90-文档-Data/灭神纪/战斗场景.json"
-COLLECTION_NAME = "wukong_hybrid_v4" # 使用新的集合名以避免旧数据冲突
-MILVUS_URI = "./wukong_v4.db" # 使用新的数据库文件
-BATCH_SIZE = 50 # 可以尝试减小批次大小，例如 10 或 20，进行测试
+DATA_PATH = "90-文档-Data/灭神纪/战斗场景.json"
+DATABASE_NAME = "blackmyth_wukong"
+COLLECTION_NAME = "wukong_hybrid" # 使用新的集合名以避免旧数据冲突
+MILVUS_URI = "http://172.17.19.130:19530" # 使用新的数据库文件
+BATCH_SIZE = 5 # 可以尝试减小批次大小，例如 10 或 20，进行测试
 DEVICE = "cpu" # 或者 "cuda" 如果有GPU并已正确配置
 
 print("脚本开始执行...")

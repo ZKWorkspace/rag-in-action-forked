@@ -2,19 +2,21 @@ from pymilvus import MilvusClient
 import random
 
 # 连接到 Milvus
-client = MilvusClient(
-    uri="http://localhost:19530",
-    token="root:Milvus"
-)
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+client = MilvusClient(uri="http://172.17.19.130:19530", token=os.getenv("MILVUS_TOKEN"))
 
 # 1. 创建集合
 # 检查集合是否存在，如果存在则删除
-if client.has_collection("quick_setup"):
-    client.drop_collection("quick_setup")
+collection_name = "coll_04_entity"
+if client.has_collection(collection_name):
+    client.drop_collection(collection_name)
 
 # 创建集合
 client.create_collection(
-    collection_name="quick_setup",
+    collection_name=collection_name,
     dimension=5,  # vector 维度
     primary_field_name="id",
     vector_field_name="vector",
@@ -38,7 +40,7 @@ data=[
 ]
 
 res = client.insert(
-    collection_name="quick_setup",
+    collection_name=collection_name,
     data=data
 )
 
@@ -51,23 +53,23 @@ update_data = [
 ]
 
 res = client.upsert(
-    collection_name="quick_setup",
+    collection_name=collection_name,
     data=update_data
 )
 print("\n更新结果:", res)
 
 # 4. 删除实体
 res = client.delete(
-    collection_name="quick_setup",
+    collection_name=collection_name,
     ids=[0]
 )
 print("\n删除结果:", res)
 
 # 5. 查询实体
-client.flush(collection_name="quick_setup") # 刷新内存
-client.load(collection_name="quick_setup") # 加载到内存
+client.flush(collection_name)
+client.load_collection(collection_name)
 res = client.query(
-    collection_name="quick_setup",
+    collection_name=collection_name,
     filter="id in [1,2]",
     output_fields=["id", "color"]
 )

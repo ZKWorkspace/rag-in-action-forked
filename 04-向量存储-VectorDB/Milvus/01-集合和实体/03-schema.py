@@ -4,10 +4,11 @@ from pymilvus import MilvusClient, DataType
 # ——————————————
 # 0. 连接 Milvus
 # ——————————————
-client = MilvusClient(
-    uri="http://localhost:19530",
-    token="root:Milvus"
-)
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+client = MilvusClient(uri="http://172.17.19.130:19530", token=os.getenv("MILVUS_TOKEN"))
 print("✓ 已连接 Milvus接口")
 
 # ——————————————
@@ -31,7 +32,7 @@ schema.add_field(
 # schema.add_field(
 #     field_name="doc_id",
 #     datatype=DataType.VARCHAR,
-#     is_primary=True,  # 设置为主键
+#     is_primary=True,  # 设置为主键, Expected only one primary key field
 #     auto_id=True,     # 自动生成ID
 #     max_length=100    # VARCHAR类型需要指定最大长度
 # )
@@ -100,6 +101,9 @@ print("✓ 已添加标量字段")
 
 # ——————————————
 # 5. 添加动态字段（Dynamic Field）
+# Error: cannot explicitly set a field as a dynamic field,
+#        all fields added in schema are fixed. 
+#        You can create dynamic fields when inserting entities.
 # ——————————————
 # schema.add_field(
 #     field_name="dynamic_field",
@@ -107,12 +111,14 @@ print("✓ 已添加标量字段")
 #     is_dynamic=True,    # 设置为动态字段
 #     max_length=500
 # )
-print("✓ 已添加动态字段")
+# print("✓ 已添加动态字段")
 
 # ——————————————
 # 6. 使用Schema创建Collection
 # ——————————————
 collection_name = "document_store10"
+if client.has_collection(collection_name=collection_name):
+    client.drop_collection(collection_name=collection_name)
 client.create_collection(
     collection_name=collection_name,
     schema=schema
@@ -123,14 +129,14 @@ print(f"✓ 已创建集合 {collection_name}")
 # 7. 修改Collection字段
 # ——————————————
 # 添加新字段
-# client.alter_collection_field(
-#     collection_name=collection_name,
-#     field_name="tags",
-#     field_params={
-#         "max_capacity": 64
-#     }
-# )
-# print("✓ 已添加新字段")
+client.alter_collection_field(
+    collection_name=collection_name,
+    field_name="tags",
+    field_params={
+        "max_capacity": 64
+    }
+)
+print("✓ 已添加新字段")
 
 # ——————————————
 # 8. 查看Collection详情

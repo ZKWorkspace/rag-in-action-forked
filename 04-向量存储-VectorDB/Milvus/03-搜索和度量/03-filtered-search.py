@@ -2,8 +2,12 @@ from pymilvus import MilvusClient, DataType
 import random
 
 # 1. 设置 Milvus 客户端
-client = MilvusClient(uri="http://localhost:19530")
-COLLECTION_NAME = "ann_search_demo"
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+client = MilvusClient(uri="http://172.17.19.130:19530", token=os.getenv("MILVUS_TOKEN"))
+COLLECTION_NAME = "coll_03_ann_search_filtered"
 
 # 如果集合已存在，则删除
 if client.has_collection(COLLECTION_NAME):
@@ -20,7 +24,7 @@ schema.add_field(field_name="likes", datatype=DataType.INT64)
 client.create_collection(collection_name=COLLECTION_NAME, schema=schema)
 
 # 4. 插入随机向量数据
-num_vectors = 1000
+num_vectors = 1024
 vectors = [[random.random() for _ in range(128)] for _ in range(num_vectors)]
 ids = list(range(num_vectors))
 colors = [f"color_{random.randint(1, 1000)}" for _ in range(num_vectors)]
@@ -45,6 +49,7 @@ client.create_index(
 )
 
 # 6. 加载集合
+client.flush(collection_name=COLLECTION_NAME)
 client.load_collection(collection_name=COLLECTION_NAME)
 
 # 7. 标准过滤搜索示例
@@ -74,7 +79,7 @@ results = client.search(
     limit=3,
     search_params={
         "metric_type": "L2",
-        "hints": "iterative_filter"  # 启用迭代过滤
+        "hints": "iterative_filter"  # 启用迭代过滤，分批次检索和缩率，直到返回足够多的有效结果，提升效率，减少资源开销，但是精度会降低
     },
     filter='color like "color_%" and likes > 500',
     output_fields=["color", "likes"]

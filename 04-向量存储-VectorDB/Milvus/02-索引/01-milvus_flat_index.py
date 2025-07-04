@@ -1,9 +1,15 @@
 from pymilvus import MilvusClient, DataType
 import random
+import time
+import numpy as np
 
 # 1. 设置 Milvus 客户端
-client = MilvusClient(uri="http://localhost:19530")
-COLLECTION_NAME = "flat_index_demo"
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+client = MilvusClient(uri="http://172.17.19.130:19530", token=os.getenv("MILVUS_TOKEN"))
+COLLECTION_NAME = "coll_01_milvus_flat_index"
 
 # 如果集合已存在，则删除
 if client.has_collection(COLLECTION_NAME):
@@ -18,21 +24,21 @@ schema.add_field(field_name="vector", datatype=DataType.FLOAT_VECTOR, dim=128)
 client.create_collection(collection_name=COLLECTION_NAME, schema=schema)
 
 # 4. 插入随机向量数据
-num_vectors = 1000
+num_vectors = 1024
 vectors = [[random.random() for _ in range(128)] for _ in range(num_vectors)]
 ids = list(range(num_vectors))
 entities = [{"id": ids[i], "vector": vectors[i]} for i in range(num_vectors)]
 
 client.insert(collection_name=COLLECTION_NAME, data=entities)
 # flush 保证数据落盘
-# client.flush([COLLECTION_NAME])
+client.flush(COLLECTION_NAME) # 如果不做flush，后续索引详情的打印total_rows和indexed_rows均为0，flush后均为num_vectors
 
 # 5. 创建索引（此时集合中已有数据）
 index_params = MilvusClient.prepare_index_params()
 index_params.add_index(
     field_name="vector",
-    metric_type="L2",
-    index_type="FLAT",
+    metric_type="L2",  # 指定向量相似度的计算方式，L2表示欧氏距离，其他可选IP（Inner Product，内积）、COSINE(余弦相似度)、HAMMING(汉明)、JACCARD、TANIMOTO、SUPERSTRUCTURE、SUBSTRUCTURE
+    index_type="FLAT", # FLAT是最基础的索引方式，即暴力全量遍历，其他可选IVF_FLAT(倒排+暴力)、BIN_IVF_FLAT、IVF_SQ8(倒排+量化)、IVF_PQ、HNSW、DISKANN、AUTOINDEX
     index_name="vector_index",
     params={}  # FLAT 不需要额外参数
 )
@@ -51,14 +57,33 @@ print("索引详情:", client.describe_index(
 
 # 6. load 后再搜索
 client.load_collection(collection_name=COLLECTION_NAME)
-search_vectors = [[random.random() for _ in range(128)]]
-results = client.search(
-    collection_name=COLLECTION_NAME,
-    data=search_vectors,
-    ann_field="vector",
-    limit=5,
-    output_fields=["id"]
-)
+latencies = []
+num_search = 105  # 总共执行100次
+warmup = 5        # 前5次作为warmup
+for i in range(num_search):
+    search_vectors = [[random.random() for _ in range(128)]]
+    start_time = time.time()  # 记录开始时间
+    results = client.search(
+        collection_name=COLLECTION_NAME,
+        data=search_vectors,
+        ann_field="vector",
+        limit=5,
+        output_fields=["id"]
+    )
+    end_time = time.time()  # 记录结束时间
+    latency_ms = (end_time - start_time) * 1000  # 转换为毫秒
+    if i >= warmup:
+        latencies.append(latency_ms)
+if latencies:
+    latencies_np = np.array(latencies)
+    print("\n时延统计结果（单位：ms）：")
+    print(f"MAX:{latencies_np.max():>10.2f}")
+    print(f"MIN:{latencies_np.min():>10.2f}")
+    print(f"AVG:{latencies_np.mean():>10.2f}")
+    print(f"P50:{np.percentile(latencies_np, 50):>10.2f}")
+    print(f"P99:{np.percentile(latencies_np, 99):>10.2f}")
+else:
+    print("无有效时延数据")
 
 print("\n搜索结果:")
 for hits in results:

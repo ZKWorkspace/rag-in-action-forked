@@ -1,7 +1,8 @@
 """
 纯检索程序：基于已构建的Milvus向量库进行检索
 """
-
+import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
 import torch
 from pymilvus import MilvusClient
 from PIL import Image
@@ -30,9 +31,12 @@ class WukongEncoder:
 
 class MilvusSearcher:
     """Milvus检索器"""
-    def __init__(self, db_path: str, collection_name: str):
-        self.client = MilvusClient(uri=db_path)
+    def __init__(self, db_path: str, database_name:str, collection_name: str):
+        self.client = MilvusClient(uri=db_path, token=os.getenv("MILVUS_TOKEN"))
+        self.client.use_database(db_name=database_name)
         self.collection_name = collection_name
+        self.client.flush(collection_name=collection_name)
+        self.client.load_collection(collection_name=collection_name)
     
     def search(
         self,
@@ -52,7 +56,7 @@ class MilvusSearcher:
         # 构建搜索参数
         search_params = {
             "metric_type": "COSINE",
-            "params": {"nprobe": 10}
+            "params": {"nprobe": 10} # 搜索时需要检查的聚类（cluster）数量，取值范围是[1, nlist]，nlist是创建索引时聚类的数量
         }
 
         # 构建 filter 表达式
@@ -136,11 +140,11 @@ def print_results(results: List[dict]):
 if __name__ == "__main__":
     # 初始化编码器（根据需要换中文模型）
     model_name = "BAAI/bge-base-en-v1.5"
-    model_path = "./Visualized_base_en_v1.5.pth"
+    model_path = "/home/zorn/.cache/huggingface/hub/models--BAAI--bge-visualized/snapshots/adc579b9b84a865c07e9164d5528aa748fe6227e/Visualized_base_en_v1.5.pth"
     encoder = WukongEncoder(model_name, model_path)
     
     # 初始化检索器
-    searcher = MilvusSearcher("./wukong_images.db", "wukong_scenes")
+    searcher = MilvusSearcher("http://172.17.19.130:19530", "blackmyth_wukong", "wukong_scenes_en")
     
     # 生成查询向量
     query_image = "90-文档-Data/多模态/query_image.jpg"

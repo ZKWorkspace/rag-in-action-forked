@@ -2,8 +2,12 @@ from pymilvus import MilvusClient, DataType
 import random
 
 # 1. 设置 Milvus 客户端
-client = MilvusClient(uri="http://localhost:19530")
-COLLECTION_NAME = "ann_search_demo"
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+client = MilvusClient(uri="http://172.17.19.130:19530", token=os.getenv("MILVUS_TOKEN"))
+COLLECTION_NAME = "coll_09_metadata_query"
 
 # 如果集合已存在，则删除
 if client.has_collection(COLLECTION_NAME):
@@ -19,7 +23,7 @@ schema.add_field(field_name="color", datatype=DataType.VARCHAR, max_length=100)
 client.create_collection(collection_name=COLLECTION_NAME, schema=schema)
 
 # 4. 插入随机向量数据
-num_vectors = 1000
+num_vectors = 1024
 vectors = [[random.random() for _ in range(128)] for _ in range(num_vectors)]
 ids = list(range(num_vectors))
 colors = [f"color_{random.randint(1, 1000)}" for _ in range(num_vectors)]
@@ -43,6 +47,7 @@ client.create_index(
 )
 
 # 6. 加载集合
+client.flush(collection_name=COLLECTION_NAME)
 client.load_collection(collection_name=COLLECTION_NAME)
 
 # 7. 单向量搜索示例
@@ -125,7 +130,7 @@ print("\n=== QueryIterator 分页查询 ===")
 from pymilvus import connections, Collection
 
 # 重新连接以使用 Collection 类
-connections.connect(uri="http://localhost:19530")
+connections.connect(uri="http://172.17.19.130:19530")
 collection = Collection(COLLECTION_NAME)
 
 iterator = collection.query_iterator(

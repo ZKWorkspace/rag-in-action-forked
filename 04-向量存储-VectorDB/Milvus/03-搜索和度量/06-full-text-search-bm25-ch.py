@@ -2,8 +2,12 @@ from pymilvus import MilvusClient, DataType, Function, FunctionType
 import json
 
 # 1. 设置 Milvus 客户端
-client = MilvusClient(uri="http://localhost:19530")
-COLLECTION_NAME = "full_text_search_demo"
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+client = MilvusClient(uri="http://172.17.19.130:19530", token=os.getenv("MILVUS_TOKEN"))
+COLLECTION_NAME = "coll_06_full_text_search_bm25_ch"
 
 # 如果集合已存在，则删除
 if client.has_collection(COLLECTION_NAME):
@@ -16,7 +20,15 @@ schema = client.create_schema()
 
 # 添加必要的字段
 schema.add_field(field_name="id", datatype=DataType.INT64, is_primary=True, auto_id=True)
-schema.add_field(field_name="text", datatype=DataType.VARCHAR, max_length=1000, enable_analyzer=True)
+# analyzer_params = {"tokenizer": "jieba",}
+analyzer_params = {"type":"chinese",}
+schema.add_field(
+    field_name="text",
+    datatype=DataType.VARCHAR,
+    max_length=1000,
+    enable_analyzer=True,
+    analyzer_params=analyzer_params # Note: Highlight here
+)
 schema.add_field(field_name="sparse", datatype=DataType.SPARSE_FLOAT_VECTOR)
 
 # 3. 定义 BM25 函数
@@ -42,8 +54,8 @@ index_params.add_index(
     metric_type="BM25",
     params={
         "inverted_index_algo": "DAAT_MAXSCORE",
-        "bm25_k1": 1.2,
-        "bm25_b": 0.75
+        "bm25_k1": 1.2, # 控制词频饱和度，即单个词在文档中出现多次对得分的贡献，通常取值范围是1.2~2.0，取值越大对得分的影响越大，约适合长文档
+        "bm25_b": 0.75  # 控制文档长度归一化的程度，平衡长文档和短文档的得分，取值范围是0~1，0表示完全不考虑文档长度，1表示完全归一化文档长度
     },
 )
 
@@ -70,6 +82,7 @@ print(f"插入结果: {insert_result}")
 
 # 7. 加载集合
 print("\n加载集合...")
+client.flush(collection_name=COLLECTION_NAME)
 client.load_collection(collection_name=COLLECTION_NAME)
 
 # 8. 执行全文搜索
@@ -78,7 +91,7 @@ search_params = {
     'params': {'drop_ratio_search': 0.2},
 }
 
-query_text = "信息"
+query_text = "数据"
 print(f"\n执行搜索，查询文本: {query_text}")
 results = client.search(
     collection_name=COLLECTION_NAME,
@@ -89,19 +102,19 @@ results = client.search(
     output_fields=["text"]  # 添加输出字段以显示原始文本
 )
 
-print("\n搜索结果结构:")
-print(json.dumps(results, indent=2, ensure_ascii=False))
+# print("\n搜索结果结构:")
+# print(json.dumps(results, indent=2, ensure_ascii=False))
 
 print("\n搜索结果:")
 if results and len(results) > 0:
     for hits in results:
         for hit in hits:
             # 打印完整的 hit 结构
-            print("\nHit 结构:")
-            print(json.dumps(hit, indent=2, ensure_ascii=False))
+            # print("\nHit 结构:")
+            # print(json.dumps(hit, indent=2, ensure_ascii=False))
             # 尝试不同的字段访问方式
             if 'entity' in hit:
-                print(f"ID: {hit.get('id', 'N/A')}, 文本: {hit['entity'].get('text', 'N/A')}")
+                print(f"ID: {hit.get('id', 'N/A')}, 分值: {hit.get('distance', 'N/A')}, 文本: {hit['entity'].get('text', 'N/A')}")
             else:
                 print("未找到 entity 字段")
 else:

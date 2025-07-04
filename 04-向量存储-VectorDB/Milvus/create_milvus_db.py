@@ -1,11 +1,11 @@
-from pymilvus import model
+from pymilvus import model # pip install pymilvus pymilvus.model
 from pymilvus import MilvusClient
 import pandas as pd
 from tqdm import tqdm
 import logging
 from dotenv import load_dotenv
 load_dotenv()
-import torch    
+import torch # pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 from pymilvus import MilvusClient, DataType, FieldSchema, CollectionSchema
 
 # 设置日志

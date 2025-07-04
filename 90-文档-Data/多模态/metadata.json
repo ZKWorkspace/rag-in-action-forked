@@ -2,7 +2,7 @@
     "images": [
         {
             "image_id": "combat_001",
-            "file_path": "data/多模态/01.jpg",
+            "file_path": "90-文档-Data/多模态/01.jpg",
             "title": "灵猴战斗形态",
             "category": "combat",
             "description": "悟空使用灵猴变身形态与狮妖展开激烈对战，展现出了强大的技能特效",
@@ -16,7 +16,7 @@
         },
         {
             "image_id": "combat_002",
-            "file_path": "data/多模态/02.jpg",
+            "file_path": "90-文档-Data/多模态/02.jpg",
             "title": "金箍棒火焰攻击",
             "category": "combat",
             "description": "悟空使用金箍棒释放火焰攻击，火光四射的场景特效震撼壮观",
@@ -30,7 +30,7 @@
         },
         {
             "image_id": "combat_003",
-            "file_path": "data/多模态/03.jpg",
+            "file_path": "90-文档-Data/多模态/03.jpg",
             "title": "雪地白骨精之战",
             "category": "combat",
             "description": "在皑皑白雪中，悟空与白骨精展开激烈对决，冰雪特效与战斗动作完美融合",
@@ -44,7 +44,7 @@
         },
         {
             "image_id": "combat_004",
-            "file_path": "data/多模态/04.jpg",
+            "file_path": "90-文档-Data/多模态/04.jpg",
             "title": "水帘洞激战",
             "category": "combat",
             "description": "在瀑布环绕的水帘洞中，悟空与小妖群展开激烈战斗，水花四溅",
@@ -58,7 +58,7 @@
         },
         {
             "image_id": "combat_005",
-            "file_path": "data/多模态/05.jpg",
+            "file_path": "90-文档-Data/多模态/05.jpg",
             "title": "筋斗云空战",
             "category": "combat",
             "description": "悟空腾云驾雾，在高空中与飞行妖怪展开激烈对战",
@@ -72,7 +72,7 @@
         },
         {
             "image_id": "combat_006",
-            "file_path": "data/多模态/06.jpg",
+            "file_path": "90-文档-Data/多模态/06.jpg",
             "title": "地宫对决",
             "category": "combat",
             "description": "在幽暗的地宫中，悟空与蜘蛛精展开近身搏斗，暗影中闪烁着金箍棒的光芒",
@@ -86,7 +86,7 @@
         },
         {
             "image_id": "combat_007",
-            "file_path": "data/多模态/07.jpg",
+            "file_path": "90-文档-Data/多模态/07.jpg",
             "title": "七十二变战技",
             "category": "combat",
             "description": "悟空施展七十二变，变化出多个分身围攻强敌，场面壮观",
@@ -100,7 +100,7 @@
         },
         {
             "image_id": "combat_008",
-            "file_path": "data/多模态/08.jpg",
+            "file_path": "90-文档-Data/多模态/08.jpg",
             "title": "雷电千钧",
             "category": "combat",
             "description": "悟空在雷暴天气中战斗，金箍棒引导闪电攻击敌人",
@@ -114,7 +114,7 @@
         },
         {
             "image_id": "combat_009",
-            "file_path": "data/多模态/09.jpg",
+            "file_path": "90-文档-Data/多模态/09.jpg",
             "title": "红莲业火",
             "category": "combat",
             "description": "悟空释放终极技能，火焰形成莲花形态，焚烧四周妖魔",
@@ -125,20 +125,6 @@
             "abilities_shown": ["红莲业火", "火焰操控"],
             "environment": "火山",
             "time_of_day": "黄昏"
-        },
-        {
-            "image_id": "combat_010",
-            "file_path": "data/多模态/10.jpg",
-            "title": "如意金箍",
-            "category": "combat",
-            "description": "悟空使用巨大化的金箍棒，展现出碾压性的战斗场面",
-            "tags": ["金箍棒", "巨大化", "压制战"],
-            "game_chapter": "第五章",
-            "location": "天宫",
-            "characters": ["孙悟空", "天兵"],
-            "abilities_shown": ["金箍棒巨大化", "横扫千军"],
-            "environment": "仙境",
-            "time_of_day": "白天"
         }
     ],
     "metadata_version": "1.0",

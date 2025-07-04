@@ -4,16 +4,20 @@
 """
 
 # ==================== 1. 初始化编码器 ====================
+import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
 import torch
-from visual_bge.modeling import Visualized_BGE
+from visual_bge.modeling import Visualized_BGE # Fix Error:请使用章节03-向量嵌入-Embedding/05-多模态嵌入.py的方法安装依赖
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List
 import json
 from tqdm import tqdm
 import numpy as np
 import cv2
 from PIL import Image
-from pymilvus import MilvusClient
+from pymilvus import MilvusClient, MilvusException
+from dotenv import load_dotenv
+load_dotenv()
 
 class WukongEncoder:
     """多模态编码器：将图像和文本编码成向量"""
@@ -35,7 +39,9 @@ class WukongEncoder:
 
 # 初始化编码器
 model_name = "BAAI/bge-m3"
-model_path = "./Visualized_m3.pth"
+model_path = "/home/zorn/.cache/huggingface/hub/models--BAAI--bge-visualized/snapshots/adc579b9b84a865c07e9164d5528aa748fe6227e/Visualized_m3.pth"
+# Fix Error: LMRobertaTokenizer requires the SentencePiece library but it was not
+# found in your environment. Please visit https://github.com/google/sentencepiece#installation
 encoder = WukongEncoder(model_name, model_path)
 
 # ==================== 2. 数据集管理 ====================
@@ -89,13 +95,25 @@ print(f"成功编码 {len(image_dict)} 张图片")
 
 # ==================== 4. Milvus向量库设置 ====================
 # 连接/创建Milvus数据库
-collection_name = "wukong_scenes"
-milvus_client = MilvusClient(uri="./wukong_images.db")
+milvus_client = MilvusClient(uri="http://172.17.19.130:19530", token=os.getenv("MILVUS_TOKEN"))
+DATABASE_NAME = "blackmyth_wukong"
+COLLECTION_NAME = "wukong_scenes"
+if DATABASE_NAME not in milvus_client.list_databases():
+    try:
+        milvus_client.create_database(db_name=DATABASE_NAME)
+        print(f"✓ {DATABASE_NAME} 创建成功")
+    except MilvusException as e:
+        print(str(e))
+        exit
+milvus_client.use_database(db_name=DATABASE_NAME)
+if COLLECTION_NAME in milvus_client.list_collections():
+    milvus_client.drop_collection(collection_name=COLLECTION_NAME)
+    print(f"✓ 删除表{COLLECTION_NAME}成功")
 
 # 创建向量集合
 dim = len(list(image_dict.values())[0])
 milvus_client.create_collection(
-    collection_name=collection_name,
+    collection_name=COLLECTION_NAME,
     dimension=dim,
     auto_id=True,
     enable_dynamic_field=True
@@ -121,9 +139,10 @@ for image in dataset.images:
         })
 
 result = milvus_client.insert(
-    collection_name=collection_name,
+    collection_name=COLLECTION_NAME,
     data=insert_data
 )
+milvus_client.flush(collection_name=COLLECTION_NAME)
 print(f"索引构建完成，共插入 {result['insert_count']} 条记录")
 
 # ==================== 5. 搜索功能实现 ====================
@@ -156,7 +175,7 @@ def search_similar_images(
 
     # 执行搜索
     results = milvus_client.search(
-        collection_name=collection_name,
+        collection_name=COLLECTION_NAME,
         data=[query_vec],
         output_fields=[
             "image_path", "title", "category", "description",

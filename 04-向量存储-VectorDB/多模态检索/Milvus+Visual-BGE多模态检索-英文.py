@@ -4,16 +4,20 @@
 """
 
 # ==================== 1. 初始化编码器 ====================
+import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
 import torch
 from visual_bge.modeling import Visualized_BGE
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List
 import json
 from tqdm import tqdm
 import numpy as np
 import cv2
 from PIL import Image
-from pymilvus import MilvusClient
+from pymilvus import MilvusClient, MilvusException
+from dotenv import load_dotenv
+load_dotenv()
 
 class WukongEncoder:
     """多模态编码器：将图像和文本编码成向量"""
@@ -35,7 +39,7 @@ class WukongEncoder:
 
 # 初始化编码器
 model_name = "BAAI/bge-base-en-v1.5"
-model_path = "./Visualized_base_en_v1.5.pth"
+model_path = "/home/zorn/.cache/huggingface/hub/models--BAAI--bge-visualized/snapshots/adc579b9b84a865c07e9164d5528aa748fe6227e/Visualized_base_en_v1.5.pth"
 encoder = WukongEncoder(model_name, model_path)
 
 # ==================== 2. 数据集管理 ====================
@@ -73,7 +77,7 @@ class WukongDataset:
                 self.images.append(WukongImage(**img_data))
 
 # 初始化数据集
-dataset = WukongDataset("/home/huangj2/Documents/rag-in-action/90-文档-Data/多模态", "/home/huangj2/Documents/rag-in-action/90-文档-Data/多模态/metadata.json")
+dataset = WukongDataset("90-文档-Data/多模态", "90-文档-Data/多模态/metadata.json")
 
 # ==================== 3. 生成图像嵌入 ====================
 # 为所有图像生成嵌入向量
@@ -89,13 +93,25 @@ print(f"成功编码 {len(image_dict)} 张图片")
 
 # ==================== 4. Milvus向量库设置 ====================
 # 连接/创建Milvus数据库
-collection_name = "wukong_scenes"
-milvus_client = MilvusClient(uri="./wukong_images.db")
+milvus_client = MilvusClient(uri="http://172.17.19.130:19530", token=os.getenv("MILVUS_TOKEN"))
+DATABASE_NAME = "blackmyth_wukong"
+COLLECTION_NAME = "wukong_scenes_en"
+if DATABASE_NAME not in milvus_client.list_databases():
+    try:
+        milvus_client.create_database(db_name=DATABASE_NAME)
+        print(f"✓ {DATABASE_NAME} 创建成功")
+    except MilvusException as e:
+        print(str(e))
+        exit
+milvus_client.use_database(db_name=DATABASE_NAME)
+if COLLECTION_NAME in milvus_client.list_collections():
+    milvus_client.drop_collection(collection_name=COLLECTION_NAME)
+    print(f"✓ 删除表{COLLECTION_NAME}成功")
 
 # 创建向量集合
 dim = len(list(image_dict.values())[0])
 milvus_client.create_collection(
-    collection_name=collection_name,
+    collection_name=COLLECTION_NAME,
     dimension=dim,
     auto_id=True,
     enable_dynamic_field=True
@@ -121,9 +137,10 @@ for image in dataset.images:
         })
 
 result = milvus_client.insert(
-    collection_name=collection_name,
+    collection_name=COLLECTION_NAME,
     data=insert_data
 )
+milvus_client.flush(collection_name=COLLECTION_NAME)
 print(f"索引构建完成，共插入 {result['insert_count']} 条记录")
 
 # ==================== 5. 搜索功能实现 ====================
@@ -156,7 +173,7 @@ def search_similar_images(
 
     # 执行搜索
     results = milvus_client.search(
-        collection_name=collection_name,
+        collection_name=COLLECTION_NAME,
         data=[query_vec],
         output_fields=[
             "image_path", "title", "category", "description",
@@ -228,7 +245,7 @@ def visualize_results(query_image: str, results: List[dict], output_path: str):
 
 # ==================== 7. 执行查询示例 ====================
 # 执行查询
-query_image = "/home/huangj2/Documents/rag-in-action/90-文档-Data/多模态/query_image.jpg"
+query_image = "90-文档-Data/多模态/query_image.jpg"
 query_text = "寻找悟空面对建筑物战斗场景"
 
 results = search_similar_images(
@@ -247,4 +264,4 @@ for idx, result in enumerate(results):
     print(f"相似度分数：{result['distance']:.4f}")
 
 # 可视化结果
-visualize_results(query_image, results, "search_results.jpg")
+visualize_results(query_image, results, "search_results_en.jpg")

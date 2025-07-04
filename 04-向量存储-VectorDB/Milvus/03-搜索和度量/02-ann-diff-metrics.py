@@ -9,14 +9,18 @@ COSINE 适合方向相似性比较
 '''
 
 # 1. 设置 Milvus 客户端
-client = MilvusClient(uri="http://localhost:19530")
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+client = MilvusClient(uri="http://172.17.19.130:19530", token=os.getenv("MILVUS_TOKEN"))
 
 # 定义指标类型和对应的集合名称
 metric_types = ["L2", "IP", "COSINE"]
-collections = {metric: f"ann_search_demo_{metric.lower()}" for metric in metric_types}
+collections = {metric: f"coll_02_ann_search_{metric.lower()}" for metric in metric_types}
 
 # 2. 创建数据
-def create_data(num_vectors=1000, dim=128):
+def create_data(num_vectors=1024, dim=128):
     vectors = [[random.random() for _ in range(dim)] for _ in range(num_vectors)]
     ids = list(range(num_vectors))
     colors = [f"color_{random.randint(1, 1000)}" for _ in range(num_vectors)]
@@ -59,6 +63,7 @@ def create_collection_with_metric(collection_name, metric_type):
     )
 
     # 加载集合
+    client.flush(collection_name=collection_name)
     client.load_collection(collection_name=collection_name)
 
 # 为每种指标类型创建集合

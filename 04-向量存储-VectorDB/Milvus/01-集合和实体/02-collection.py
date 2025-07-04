@@ -4,11 +4,19 @@ from pymilvus import MilvusClient
 # ——————————————
 # 0. 连接 Milvus
 # ——————————————
-client = MilvusClient(
-    uri="http://localhost:19530",
-    token="root:Milvus"
-)
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+client = MilvusClient(uri="http://172.17.19.130:19530", token=os.getenv("MILVUS_TOKEN"))
 print("✓ 已连接 Milvus接口")
+
+def clear_aliases(collection_name):
+    aliases = client.list_aliases(collection_name=collection_name)
+    if aliases["aliases"]:
+        for alias in aliases["aliases"]:
+            client.drop_alias(alias=alias)
+            print(f"▶已删除别名{alias}")
 
 # ——————————————
 # 1. 创建 Collection（快速模式）
@@ -16,6 +24,7 @@ print("✓ 已连接 Milvus接口")
 # 检查并删除已存在的集合
 collection_name = "quick_setup"
 if collection_name in client.list_collections():
+    clear_aliases(collection_name)
     client.drop_collection(collection_name=collection_name)
     print(f"✓ 已删除已存在的集合 {collection_name}")
 
@@ -43,6 +52,7 @@ print(f"{collection_name} 详情：", info)
 # ——————————————
 new_collection_name = "quick_renamed"
 if new_collection_name in client.list_collections():
+    clear_aliases(new_collection_name)
     client.drop_collection(collection_name=new_collection_name)
     print(f"✓ 已删除已存在的集合 {new_collection_name}")
 
@@ -155,5 +165,9 @@ print("剩余 aliases：", client.list_aliases(new_collection_name))
 # ——————————————
 # 11. 删除 Collection
 # ——————————————
+# Fix Error: unable to drop the collection [quick_renamed] because
+# it has associated aliases [alias4], please remove all aliases
+# before dropping the collection
+clear_aliases(new_collection_name)
 client.drop_collection(collection_name=new_collection_name)
 print(f"✓ 集合 {new_collection_name} 已删除")

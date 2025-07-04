@@ -1,9 +1,14 @@
 from pymilvus import MilvusClient, DataType
 import random
+import numpy as np
 
 # 1. 设置 Milvus 客户端
-client = MilvusClient(uri="http://localhost:19530")
-COLLECTION_NAME = "ann_search_demo"
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+client = MilvusClient(uri="http://172.17.19.130:19530", token=os.getenv("MILVUS_TOKEN"))
+COLLECTION_NAME = "coll_04_ann_search_range"
 
 # 如果集合已存在，则删除
 if client.has_collection(COLLECTION_NAME):
@@ -19,11 +24,17 @@ schema.add_field(field_name="color", datatype=DataType.VARCHAR, max_length=100)
 client.create_collection(collection_name=COLLECTION_NAME, schema=schema)
 
 # 4. 插入随机向量数据
-num_vectors = 1000
+def normalize_vector(vector):
+    norm = np.linalg.norm(vector)
+    if norm == 0:
+        return vector
+    return vector / norm
+
+num_vectors = 1024
 vectors = [[random.random() for _ in range(128)] for _ in range(num_vectors)]
 ids = list(range(num_vectors))
 colors = [f"color_{random.randint(1, 1000)}" for _ in range(num_vectors)]
-entities = [{"id": ids[i], "vector": vectors[i], "color": colors[i]} for i in range(num_vectors)]
+entities = [{"id": ids[i], "vector": normalize_vector(vectors[i]), "color": colors[i]} for i in range(num_vectors)]
 
 client.insert(collection_name=COLLECTION_NAME, data=entities)
 
@@ -43,14 +54,16 @@ client.create_index(
 )
 
 # 6. 加载集合
+client.flush(collection_name=COLLECTION_NAME)
 client.load_collection(collection_name=COLLECTION_NAME)
 
 # 7. 单向量搜索示例
 print("\n=== 单向量搜索 ===")
 query_vector = [random.random() for _ in range(128)]
+normalized_query_vector = normalize_vector(query_vector)
 results = client.search(
     collection_name=COLLECTION_NAME,
-    data=[query_vector],
+    data=[normalized_query_vector],
     anns_field="vector",
     limit=3,
     search_params={"metric_type": "L2"}
@@ -64,9 +77,10 @@ for hits in results:
 # 8. 批量向量搜索示例
 print("\n=== 批量向量搜索 ===")
 query_vectors = [[random.random() for _ in range(128)] for _ in range(2)]
+normalized_query_vectors = [normalize_vector(vec) for vec in query_vectors]
 results = client.search(
     collection_name=COLLECTION_NAME,
-    data=query_vectors,
+    data=normalized_query_vectors,
     anns_field="vector",
     limit=3,
     search_params={"metric_type": "L2"}
@@ -82,7 +96,7 @@ for i, hits in enumerate(results):
 print("\n=== 带输出字段的搜索 ===")
 results = client.search(
     collection_name=COLLECTION_NAME,
-    data=[query_vector],
+    data=[normalized_query_vector],
     anns_field="vector",
     limit=3,
     search_params={"metric_type": "L2"},
@@ -100,14 +114,14 @@ print("\n=== 范围搜索 ===")
 # 注意：对于 L2 距离，range_filter 应该小于 radius
 results = client.search(
     collection_name=COLLECTION_NAME,
-    data=[query_vector],
+    data=[normalized_query_vector],
     anns_field="vector",
     limit=10,  # 增加限制以显示更多结果
     search_params={
         "metric_type": "L2",
         "params": {
-            "radius": 1.0,  # 外圈半径
-            "range_filter": 0.5  # 内圈半径
+            "radius": 1.0,  # 外圈半径，定义了一个最大距离阈值，超过这个阈值的向量不会被返回
+            "range_filter": 0.5  # 内圈半径，定义了一个最小距离阈值，小于这个阈值的向量不会被返回
         }
     },
     output_fields=["color"]

@@ -2,8 +2,12 @@ from pymilvus import MilvusClient, DataType
 import random
 
 # 1. 设置 Milvus 客户端
-client = MilvusClient(uri="http://localhost:19530")
-COLLECTION_NAME = "search_iterator_demo"
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+client = MilvusClient(uri="http://172.17.19.130:19530", token=os.getenv("MILVUS_TOKEN"))
+COLLECTION_NAME = "coll_08_search_iter"
 
 # 如果集合已存在，则删除
 if client.has_collection(COLLECTION_NAME):
@@ -19,7 +23,7 @@ schema.add_field(field_name="color", datatype=DataType.VARCHAR, max_length=100)
 client.create_collection(collection_name=COLLECTION_NAME, schema=schema)
 
 # 4. 插入随机向量数据
-num_vectors = 20000  # 插入更多数据以演示 SearchIterator
+num_vectors = 16384  # 插入更多数据以演示 SearchIterator
 vectors = [[random.random() for _ in range(128)] for _ in range(num_vectors)]
 ids = list(range(num_vectors))
 colors = [f"color_{random.randint(1, 1000)}" for _ in range(num_vectors)]
@@ -43,6 +47,7 @@ client.create_index(
 )
 
 # 6. 加载集合
+client.flush(collection_name=COLLECTION_NAME)
 client.load_collection(collection_name=COLLECTION_NAME)
 
 # 7. 使用 SearchIterator 进行搜索
@@ -55,8 +60,8 @@ iterator = client.search_iterator(
     data=[query_vector],
     anns_field="vector",
     search_params={"metric_type": "L2"},
-    batch_size=1000,  # 每批返回1000条结果
-    limit=20000,      # 总共返回20000条结果
+    batch_size=1024,  # 每批返回1024条结果
+    limit=8192,      # 总共返回8192条结果
     output_fields=["color"]
 )
 

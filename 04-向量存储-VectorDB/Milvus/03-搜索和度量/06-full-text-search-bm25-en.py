@@ -2,8 +2,12 @@ from pymilvus import MilvusClient, DataType, Function, FunctionType
 import json
 
 # 1. 设置 Milvus 客户端
-client = MilvusClient(uri="http://localhost:19530")
-COLLECTION_NAME = "full_text_search_demo"
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+client = MilvusClient(uri="http://172.17.19.130:19530", token=os.getenv("MILVUS_TOKEN"))
+COLLECTION_NAME = "coll_06_full_text_search_bm25_en"
 
 # 如果集合已存在，则删除
 if client.has_collection(COLLECTION_NAME):
@@ -70,6 +74,7 @@ print(f"插入结果: {insert_result}")
 
 # 7. 加载集合
 print("\n加载集合...")
+client.flush(collection_name=COLLECTION_NAME)
 client.load_collection(collection_name=COLLECTION_NAME)
 
 # 8. 执行全文搜索
@@ -78,7 +83,7 @@ search_params = {
     'params': {'drop_ratio_search': 0.2},
 }
 
-query_text = "information retrieval"
+query_text = "data"
 print(f"\n执行搜索，查询文本: {query_text}")
 results = client.search(
     collection_name=COLLECTION_NAME,
@@ -89,16 +94,16 @@ results = client.search(
     output_fields=["text"]  # 添加输出字段以显示原始文本
 )
 
-print("\n搜索结果结构:")
-print(json.dumps(results, indent=2, ensure_ascii=False))
+# print("\n搜索结果结构:")
+# print(json.dumps(results, indent=2, ensure_ascii=False))
 
 print("\n搜索结果:")
 if results and len(results) > 0:
     for hits in results:
         for hit in hits:
             # 打印完整的 hit 结构
-            print("\nHit 结构:")
-            print(json.dumps(hit, indent=2, ensure_ascii=False))
+            # print("\nHit 结构:")
+            # print(json.dumps(hit, indent=2, ensure_ascii=False))
             # 尝试不同的字段访问方式
             if 'entity' in hit:
                 print(f"ID: {hit.get('id', 'N/A')}, 文本: {hit['entity'].get('text', 'N/A')}")

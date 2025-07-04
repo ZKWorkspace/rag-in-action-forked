@@ -13,17 +13,18 @@ Creating milvus-standalone ... done
 
 '''
 
-from pymilvus import MilvusClient, exceptions
+from pymilvus import MilvusClient, MilvusException
 
 # ——————————————
 # 1. 连接 Milvus Standalone
 # ——————————————
 # uri: 协议+地址+端口，默认为 http://localhost:19530
 # token: "用户名:密码"，默认 root:Milvus
-client = MilvusClient(
-    uri="http://localhost:19530",
-    token="root:Milvus"
-)
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+client = MilvusClient(uri="http://172.17.19.130:19530", token=os.getenv("MILVUS_TOKEN"))
 
 # ——————————————
 # 2. 创建数据库 my_database_1（无额外属性）
@@ -31,17 +32,21 @@ client = MilvusClient(
 try:
     client.create_database(db_name="my_database_1")
     print("✓ my_database_1 创建成功")
-except exceptions.AlreadyExistError:
-    print("ℹ my_database_1 已存在")
+except MilvusException as e:
+    print(str(e))
+    # print("ℹ my_database_1 已存在")
 
 # ——————————————
 # 3. 创建数据库 my_database_2（设置副本数为 3）
 # ——————————————
-client.create_database(
-    db_name="my_database_2",
-    properties={"database.replica.number": 3}
-)
-print("✓ my_database_2 创建成功，副本数=3")
+try:
+    client.create_database(
+        db_name="my_database_2",
+        properties={"database.replica.number": 3}
+    )
+    print("✓ my_database_2 创建成功，副本数=3")
+except MilvusException as e:
+    print(str(e))
 
 # ——————————————
 # 4. 列出所有数据库
