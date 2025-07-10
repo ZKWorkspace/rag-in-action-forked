@@ -8,15 +8,15 @@ from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from pydantic import BaseModel, Field
 # 定义视频元数据模型
-class VideoMetadata(BaseModel):
-    """视频元数据模型，定义了需要提取的视频属性"""
-    source: str = Field(description="视频ID")
-    title: str = Field(description="视频标题")
-    description: str = Field(description="视频描述")
-    view_count: int = Field(description="观看次数")
-    publish_date: str = Field(description="发布日期")
-    length: int = Field(description="视频长度(秒)")
-    author: str = Field(description="作者")
+# class VideoMetadata(BaseModel):
+#     """视频元数据模型，定义了需要提取的视频属性"""
+#     source: str = Field(description="视频ID")
+#     title: str = Field(description="视频标题")
+#     description: str = Field(description="视频描述")
+#     view_count: int = Field(description="观看次数")
+#     publish_date: str = Field(description="发布日期")
+#     length: int = Field(description="视频长度(秒)")
+#     author: str = Field(description="作者")
 # 加载视频数据
 video_urls = [
     "https://www.youtube.com/watch?v=zDvnAY0zH7U",  # 山西佛光寺

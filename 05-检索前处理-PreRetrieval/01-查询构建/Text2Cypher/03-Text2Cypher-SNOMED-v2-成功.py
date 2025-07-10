@@ -5,9 +5,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Neo4j连接配置
-uri = "bolt://localhost:7687"  # 默认Neo4j Bolt端口
-username = "neo4j"
-password = os.getenv("NEO4J_PASSWORD")  # 从环境变量获取密码
+uri = "bolt://172.17.19.130:7687"  # 默认Neo4j Bolt端口
+username = os.getenv("NEO4J_USR")
+password = os.getenv("NEO4J_PWD")  # 从环境变量获取密码
 
 # 初始化Neo4j驱动
 driver = GraphDatabase.driver(uri, auth=(username, password))
@@ -74,8 +74,8 @@ for label, properties in schema_info["properties_by_label"].items():
 # 初始化DeepSeek客户端
 from openai import OpenAI
 client = OpenAI(
-    base_url="https://api.deepseek.com",
-    api_key=os.getenv("DEEPSEEK_API_KEY")
+    base_url=os.getenv("OPENAI_BASE_URL", None),
+    api_key=os.getenv("OPENAI_API_KEY")
 )
 
 # 设置查询

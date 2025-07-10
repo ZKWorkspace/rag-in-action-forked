@@ -1,8 +1,10 @@
 from openai import OpenAI
 from os import getenv
+from dotenv import load_dotenv
+load_dotenv()
 # 初始化OpenAI客户端，指定DeepSeek URL
 client = OpenAI(
-    base_url="https://api.deepseek.com",
+    base_url=getenv("DEEPSEEK_BASE_URL"),
     api_key=getenv("DEEPSEEK_API_KEY")
 )
 def rewrite_query(question: str) -> str:

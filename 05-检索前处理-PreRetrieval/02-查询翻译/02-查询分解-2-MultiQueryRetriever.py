@@ -1,3 +1,5 @@
+import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
 import logging
 from typing import List
 from langchain_chroma import Chroma
@@ -12,11 +14,11 @@ from langchain.prompts import PromptTemplate
 logging.basicConfig()
 logging.getLogger("langchain.retrievers.multi_query").setLevel(logging.INFO)
 # 加载游戏相关文档并构建向量数据库
-loader = TextLoader("90-文档-Data/黑悟空/黑悟空设定.txt", encoding='utf-8')
+loader = TextLoader("90-文档-Data/黑悟空/设定.txt", encoding='utf-8')
 data = loader.load()
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
 splits = text_splitter.split_documents(data)
-embed_model = HuggingFaceEmbeddings(model_name="BAAI/bge-small-zh")
+embed_model = HuggingFaceEmbeddings(model_name="BAAI/bge-small-zh-v1.5")
 vectorstore = Chroma.from_documents(documents=splits, embedding= embed_model)
 # 自定义输出解析器
 class LineListOutputParser(BaseOutputParser[List[str]]):
@@ -33,7 +35,7 @@ QUERY_PROMPT = PromptTemplate(
                 请给出5个不同的查询，每个占一行。""",
 )
 # 设定大模型处理管道
-llm = ChatDeepSeek(model="deepseek-chat", temperature=0)
+llm = ChatDeepSeek(model="deepseek-chat", api_key=os.getenv("DEEPSEEK_API_KEY"), temperature=0)
 llm_chain = QUERY_PROMPT | llm | output_parser
 # 使用自定义提示模板的MultiQueryRetriever
 retriever = MultiQueryRetriever(
@@ -43,6 +45,13 @@ retriever = MultiQueryRetriever(
 )
 # 进行多角度查询
 query = "那个，我刚开始玩这个游戏，感觉很难，请问这个游戏难度级别如何，有几关，在普陀山那一关，嗯，怎么也过不去。先学什么技能比较好？新手求指导！"
-# 调用RePhraseQueryRetriever进行查询分解
+# 调用MultiQueryRetriever进行查询分解
 docs = retriever.invoke(query)
 print(docs)
+# docs是检索结果，在retriever_from_llm的执行过程中，可以看到INFO日志打印:
+# INFO:langchain.retrievers.multi_query:Generated queries: [
+# '1. 作为新手玩家，我应该优先学习哪些基础技能来快速适应游戏节奏？能否推荐几个适合初期发展的技能组合？  ', 
+# '2. 游戏的整体难度曲线是如何设计的？普陀山关卡相比其他关卡有哪些特殊的机制或难点需要特别注意？  ', 
+# '3. 在普陀山关卡中，针对敌人的攻击模式和环境陷阱，有什么具体的战斗策略或走位技巧可以分享？  ', 
+# '4. 对于刚接触游戏的新手，装备选择和属性加点应该如何搭配才能更顺利地度过前期关卡？  ', 
+# '5. 游戏总共有多少关卡？不同关卡之间的难度跳跃大吗？是否需要达到特定等级或装备要求才能挑战后续关卡？']

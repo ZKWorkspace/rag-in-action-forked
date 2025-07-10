@@ -1,6 +1,6 @@
 # 准备数据库连接
 import sqlite3
-conn = sqlite3.connect('data/tourism.db')
+conn = sqlite3.connect('90-文档-Data/tourism.db')
 cursor = conn.cursor()
 
 # 准备Schema描述

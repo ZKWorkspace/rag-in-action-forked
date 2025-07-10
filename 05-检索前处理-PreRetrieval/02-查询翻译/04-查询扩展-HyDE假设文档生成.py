@@ -1,3 +1,5 @@
+import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_deepseek import ChatDeepSeek
@@ -11,7 +13,7 @@ data = loader.load()
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
 splits = text_splitter.split_documents(data)
 
-embed_model = HuggingFaceEmbeddings(model_name="BAAI/bge-small-zh") 
+embed_model = HuggingFaceEmbeddings(model_name="BAAI/bge-small-zh-v1.5") 
 vectordb = Chroma.from_documents(documents=splits, embedding= embed_model)
 # HyDE文档生成模板
 template = """请撰写一段与以下问题相关的游戏内容：
@@ -19,7 +21,7 @@ template = """请撰写一段与以下问题相关的游戏内容：
 内容："""
 prompt_hyde = ChatPromptTemplate.from_template(template)
 # 初始化模型
-llm = ChatDeepSeek(model="deepseek-chat") 
+llm = ChatDeepSeek(model="deepseek-chat", api_key=os.getenv("DEEPSEEK_API_KEY")) 
 # 创建生成假设文档的链
 generate_docs_for_retrieval = (
     prompt_hyde | llm | StrOutputParser()
@@ -33,7 +35,7 @@ print(generated_doc)
 # 初始化向量存储检索器
 retriever = vectordb.as_retriever()
 # 检索相关文档
-retrieval_chain = generate_docs_for_retrieval | retriever
+retrieval_chain = generate_docs_for_retrieval | retriever # chain可以嵌套
 retrieved_docs = retrieval_chain.invoke({"question": question})
 print("\n=== 检索到的相关文档 ===")
 for i, doc in enumerate(retrieved_docs, 1):

@@ -1,7 +1,7 @@
 # generate_ddl_yaml.py
 import os
 import yaml
-import pymysql
+import pymysql # 部署在130服务器上的MySQL服务需要使用sha256认证，所以需要pip install cryptography
 from dotenv import load_dotenv
 
 # 1. 加载 .env 中的数据库配置
@@ -9,8 +9,8 @@ load_dotenv()
 
 host = os.getenv("MYSQL_HOST")
 port = int(os.getenv("MYSQL_PORT", "3306"))
-user = "root"
-password = "password"
+user = os.getenv("MYSQL_USR")
+password = os.getenv("MYSQL_PWD")
 db_name = "sakila"
 
 # 2. 连接 MySQL``
@@ -40,6 +40,6 @@ finally:
     conn.close()
 
 # 5. 写入 YAML 文件
-with open("90-文档-Data/sakila/ddl_statements.yaml", "w") as f:
+with open("05-检索前处理-PreRetrieval/01-查询构建/Text2SQL/Sakila/ddl_statements.yaml", "w") as f:
     yaml.safe_dump(ddl_map, f, sort_keys=True, allow_unicode=True)
 print("✅ ddl_statements.yaml 已生成，共包含表：", list(ddl_map.keys()))

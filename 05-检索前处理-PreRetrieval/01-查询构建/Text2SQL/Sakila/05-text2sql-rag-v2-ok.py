@@ -5,7 +5,7 @@ import yaml
 import openai
 import re
 from dotenv import load_dotenv
-from pymilvus import MilvusClient
+from pymilvus import MilvusClient, MilvusException
 from pymilvus import model
 from sqlalchemy import create_engine, text
 
@@ -14,22 +14,33 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 load_dotenv()  # 加载 .env 环境变量
 
 # 2. 初始化 OpenAI API（使用最新 Response API）
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = os.getenv("DEEPSEEK_API_KEY")
+openai.base_url = os.getenv("DEEPSEEK_BASE_URL")
 
 # 建议使用新 Response API 风格
 # 例如: openai.chat.completions.create(...) 而非旧的 ChatCompletion.create
 
-MODEL_NAME = os.getenv("OPENAI_MODEL", "o4-mini")
+MODEL_NAME = os.getenv("OPENAI_MODEL", "deepseek-chat")
 
 # 3. 嵌入函数初始化
 def init_embedding():
     return model.dense.OpenAIEmbeddingFunction(
-        model_name='text-embedding-3-large',
+        model_name='BAAI/bge-m3',
+        base_url=os.getenv("SILICON_FLOW_BASE_URL"),
+        api_key=os.getenv("SILICON_FLOW_API_KEY")
     )
 
 # 4. Milvus 客户端连接
-MILVUS_DB = os.getenv("MILVUS_DB_PATH", "text2sql_milvus_sakila.db")
-client = MilvusClient(MILVUS_DB)
+client = MilvusClient(uri="http://172.17.19.130:19530", token=os.getenv("MILVUS_TOKEN"))
+DATABASE_NAME = "sakila"
+if DATABASE_NAME not in client.list_databases():
+    try:
+        client.create_database(db_name=DATABASE_NAME)
+        logging.info(f"✓ {DATABASE_NAME} 创建成功")
+    except MilvusException as e:
+        logging.error(str(e))
+        exit
+client.use_database(db_name=DATABASE_NAME)
 
 # 5. 嵌入函数实例化
 embedding_fn = init_embedding()
@@ -37,7 +48,7 @@ embedding_fn = init_embedding()
 # 6. 数据库连接（SAKILA）
 DB_URL = os.getenv(
     "SAKILA_DB_URL", 
-    "mysql+pymysql://root:password@localhost:3306/sakila"
+    f"mysql+pymysql://{os.getenv("MYSQL_USR")}:{os.getenv("MYSQL_PWD")}@{os.getenv("MYSQL_HOST")}:{os.getenv("MYSQL_PORT")}/sakila"
 )
 engine = create_engine(DB_URL)
 
@@ -75,7 +86,7 @@ def text2sql(question: str):
 
     # 9.2 RAG 检索：DDL
     ddl_hits = retrieve("ddl_knowledge", q_emb.tolist(), top_k=3, fields=["ddl_text"])
-    logging.info(f"[检索] DDL检索结果: {ddl_hits}")
+    # logging.info(f"[检索] DDL检索结果: {ddl_hits}")
     try:
         ddl_context = "\n".join(hit.get("ddl_text", "") for hit in ddl_hits)
     except Exception as e:
@@ -84,7 +95,7 @@ def text2sql(question: str):
 
     # 9.3 RAG 检索：示例对
     q2sql_hits = retrieve("q2sql_knowledge", q_emb.tolist(), top_k=3, fields=["question", "sql_text"])
-    logging.info(f"[检索] Q2SQL检索结果: {q2sql_hits}")
+    # logging.info(f"[检索] Q2SQL检索结果: {q2sql_hits}")
     try:
         example_context = "\n".join(
             f"NL: \"{hit.get('question', '')}\"\nSQL: \"{hit.get('sql_text', '')}\"" 
@@ -96,7 +107,7 @@ def text2sql(question: str):
 
     # 9.4 RAG 检索：字段描述
     desc_hits = retrieve("dbdesc_knowledge", q_emb.tolist(), top_k=8, fields=["table_name", "column_name", "description"])
-    logging.info(f"[检索] 字段描述检索结果: {desc_hits}")
+    # logging.info(f"[检索] 字段描述检索结果: {desc_hits}")
     try:
         desc_context = "\n".join(
             f"{hit.get('table_name', '')}.{hit.get('column_name', '')}: {hit.get('description', '')}"
@@ -112,7 +123,7 @@ def text2sql(question: str):
         f"### Field Descriptions:\n{desc_context}\n"
         f"### Examples:\n{example_context}\n"
         f"### Query:\n\"{question}\"\n"
-        "请只返回SQL语句，不要包含任何解释或说明。"
+        # "请只返回SQL语句，不要包含任何解释或说明。"
     )
     logging.info("[生成] 开始生成SQL")
 

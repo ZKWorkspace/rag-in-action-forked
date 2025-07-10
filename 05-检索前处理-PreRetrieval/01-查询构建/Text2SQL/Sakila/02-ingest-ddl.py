@@ -1,6 +1,9 @@
 # ingest_ddl.py
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import logging
-from pymilvus import MilvusClient, DataType, FieldSchema, CollectionSchema
+from pymilvus import MilvusClient, MilvusException, DataType, FieldSchema, CollectionSchema
 from pymilvus import model
 import torch
 import yaml
@@ -8,15 +11,28 @@ import yaml
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # 1. 初始化嵌入函数
-embedding_function = model.dense.OpenAIEmbeddingFunction(model_name='text-embedding-3-large')
+embedding_function = model.dense.OpenAIEmbeddingFunction(
+    model_name='BAAI/bge-m3',
+    base_url=os.getenv("SILICON_FLOW_BASE_URL"),
+    api_key=os.getenv("SILICON_FLOW_API_KEY")
+)
 
 # 2. 读取 DDL 列表（假设 ddl_statements.yaml 中存放 {table_name: "CREATE TABLE ..."}）
-with open("90-文档-Data/sakila/ddl_statements.yaml","r") as f:
+with open("05-检索前处理-PreRetrieval/01-查询构建/Text2SQL/Sakila/ddl_statements.yaml","r") as f:
     ddl_map = yaml.safe_load(f)
     logging.info(f"[DDL] 从YAML文件加载了 {len(ddl_map)} 个表/视图定义")
 
 # 3. 连接 Milvus
-client = MilvusClient("text2sql_milvus_sakila.db")
+client = MilvusClient(uri="http://172.17.19.130:19530", token=os.getenv("MILVUS_TOKEN"))
+DATABASE_NAME = "sakila"
+if DATABASE_NAME not in client.list_databases():
+    try:
+        client.create_database(db_name=DATABASE_NAME)
+        logging.info(f"✓ {DATABASE_NAME} 创建成功")
+    except MilvusException as e:
+        logging.error(str(e))
+        exit
+client.use_database(db_name=DATABASE_NAME)
 
 # 4. 定义 Collection Schema
 #    字段：id, vector, table_name, ddl_text
@@ -31,15 +47,15 @@ schema = CollectionSchema(fields, description="DDL Knowledge Base", enable_dynam
 
 # 5. 创建 Collection（如不存在）
 collection_name = "ddl_knowledge"
-if not client.has_collection(collection_name):
-    client.create_collection(collection_name=collection_name, schema=schema)
-    logging.info(f"[DDL] 创建了新的集合 {collection_name}")
-else:
-    logging.info(f"[DDL] 集合 {collection_name} 已存在")
+if client.has_collection(collection_name):
+    client.drop_collection(collection_name=collection_name)
+    logging.info(f"[DDL] 删除表 {collection_name} 成功")
+client.create_collection(collection_name=collection_name, schema=schema)
+logging.info(f"✓ 表{collection_name} 创建成功")
 
 # 6. 为向量字段添加索引
 index_params = client.prepare_index_params()
-index_params.add_index(field_name="vector", index_type="AUTOINDEX", metric_type="COSINE", params={"nlist": 1024})
+index_params.add_index(field_name="vector", index_type="AUTOINDEX", metric_type="COSINE", params={}) # Fix Error: only metric type can be passed when use AutoIndex
 client.create_index(collection_name=collection_name, index_params=index_params)
 
 # 7. 批量插入 DDL
@@ -62,6 +78,7 @@ for emb, rec in zip(embeddings, data):
     records.append(rec)
 
 res = client.insert(collection_name=collection_name, data=records)
+client.flush(collection_name=collection_name)
 logging.info(f"[DDL] 成功插入了 {len(records)} 条记录到Milvus")
 logging.info(f"[DDL] 插入结果: {res}")
 

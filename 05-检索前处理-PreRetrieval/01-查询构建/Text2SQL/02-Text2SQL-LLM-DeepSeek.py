@@ -23,7 +23,7 @@ schema_description = """
 import os
 from openai import OpenAI
 client = OpenAI(
-    base_url="https://api.deepseek.com",
+    base_url=os.getenv("DEEPSEEK_BASE_URL"),
     api_key=os.getenv("DEEPSEEK_API_KEY")
 )
 

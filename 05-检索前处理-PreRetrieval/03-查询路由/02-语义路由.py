@@ -1,3 +1,6 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
 from langchain.utils.math import cosine_similarity
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
@@ -20,7 +23,11 @@ story_template = """你是一位熟悉黑悟空故事情节的专家。
 {query}"""
 
 # 初始化嵌入模型
-embeddings = OpenAIEmbeddings()
+embeddings = OpenAIEmbeddings(
+    model="BAAI/bge-m3",
+    base_url=os.getenv("SILICON_FLOW_BASE_URL"),
+    api_key=os.getenv("SILICON_FLOW_API_KEY")
+)
 prompt_templates = [combat_template, story_template]
 prompt_embeddings = embeddings.embed_documents(prompt_templates)
 
@@ -33,13 +40,13 @@ def prompt_router(input):
     most_similar = prompt_templates[similarity.argmax()]
     # 选择最相似的提示模板
     print("使用战斗技巧模板" if most_similar == combat_template else "使用故事情节模板")
-    return PromptTemplate.from_template(most_similar)
+    return PromptTemplate.from_template(most_similar) # 下游LLM组件会通过LangChain的自动处理机制从输入中提取模板中占位符所需的实际内容进行替换
 
 # 创建处理链
 chain = (
-    {"query": RunnablePassthrough()}
-    | RunnableLambda(prompt_router)
-    | ChatOpenAI()
+    {"query": RunnablePassthrough()} # 将输入包装成字典格式且键名为"query"后直接向后传递
+    | RunnableLambda(prompt_router)  # 普通函数prompt_router被包装成可执行组件
+    | ChatOpenAI(model="deepseek-chat", base_url=os.getenv("DEEPSEEK_BASE_URL"), api_key=os.getenv("DEEPSEEK_API_KEY"))
     | StrOutputParser()
 )
 

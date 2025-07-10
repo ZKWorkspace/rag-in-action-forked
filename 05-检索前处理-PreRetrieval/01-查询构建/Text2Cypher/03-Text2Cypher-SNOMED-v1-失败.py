@@ -5,9 +5,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Neo4j连接配置
-uri = "bolt://localhost:7687"  # 默认Neo4j Bolt端口
-username = "neo4j"
-password = os.getenv("NEO4J_PASSWORD")  # 从环境变量获取密码
+uri = "bolt://172.17.19.130:7687"  # 默认Neo4j Bolt端口
+username = os.getenv("NEO4J_USR")
+password = os.getenv("NEO4J_PWD")  # 从环境变量获取密码
+# 如果Neo4j无法正常建立连接，请检查服务端配置文件/etc/neo4j/neo4j.conf的字段server.default_listen_address
+# 如果配置文件没有问题，请检查防火墙sudo ufw status，开启端口请使用命令sudo ufw allow 7474和sudo ufw allow 7687，
+# 并重载防火墙规则sudo ufw reload
 
 # 初始化Neo4j驱动
 driver = GraphDatabase.driver(uri, auth=(username, password))
@@ -46,7 +49,7 @@ schema_description = """
 # 初始化DeepSeek客户端
 from openai import OpenAI
 client = OpenAI(
-    base_url="https://api.deepseek.com",
+    base_url=os.getenv("DEEPSEEK_BASE_URL", None),
     api_key=os.getenv("DEEPSEEK_API_KEY")
 )
 

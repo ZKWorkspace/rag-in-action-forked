@@ -1,3 +1,5 @@
+import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
 import logging
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import TextLoader
@@ -13,15 +15,20 @@ loader = TextLoader("90-文档-Data/黑悟空/设定.txt", encoding='utf-8')
 data = loader.load()
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
 splits = text_splitter.split_documents(data)
-embed_model = HuggingFaceEmbeddings(model_name="BAAI/bge-small-zh")
+embed_model = HuggingFaceEmbeddings(model_name="BAAI/bge-small-zh-v1.5")
 vectorstore = Chroma.from_documents(documents=splits, embedding= embed_model)
 # 通过MultiQueryRetriever 生成多角度查询
-llm = ChatDeepSeek(model="deepseek-chat", temperature=0)
+llm = ChatDeepSeek(model="deepseek-chat", api_key=os.getenv("DEEPSEEK_API_KEY"), temperature=0)
 retriever_from_llm = MultiQueryRetriever.from_llm(
     retriever=vectorstore.as_retriever(), 
     llm=llm
 )
 query = "那个，我刚开始玩这个游戏，感觉很难，请问这个游戏难度级别如何，有几关，在普陀山那一关，嗯，怎么也过不去。先学什么技能比较好？新手求指导！"
-# 调用RePhraseQueryRetriever进行查询分解
+# 调用MultiQueryRetriever进行查询分解
 docs = retriever_from_llm.invoke(query)
 print(docs)
+# docs是检索结果，在retriever_from_llm的执行过程中，可以看到INFO日志打印:
+# INFO:langchain.retrievers.multi_query:Generated queries: 
+# ['1. 这个游戏的整体难度设计是怎样的？总共有多少关卡？普陀山关卡有什么特殊机制或难点？  ', 
+#  '2. 作为新手玩家，应该优先学习哪些基础技能或操作技巧？有没有适合初学者的通关策略？  ', 
+#  '3. 普陀山关卡的通关攻略或技巧有哪些？如何合理搭配技能和资源来提高通过率？']

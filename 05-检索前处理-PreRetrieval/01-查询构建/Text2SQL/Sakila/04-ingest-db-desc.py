@@ -1,6 +1,9 @@
 # ingest_dbdesc.py
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import logging
-from pymilvus import MilvusClient, DataType, FieldSchema, CollectionSchema
+from pymilvus import MilvusClient, MilvusException, DataType, FieldSchema, CollectionSchema
 from pymilvus import model
 import torch
 import yaml
@@ -8,7 +11,11 @@ import yaml
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # 1. 初始化嵌入函数
-embedding_function = model.dense.OpenAIEmbeddingFunction(model_name='text-embedding-3-large')
+embedding_function = model.dense.OpenAIEmbeddingFunction(
+    model_name='BAAI/bge-m3',
+    base_url=os.getenv("SILICON_FLOW_BASE_URL"),
+    api_key=os.getenv("SILICON_FLOW_API_KEY")
+)
 
 # 2. 加载 DB 描述（假设 db_description.yaml 格式为
 #    table_name:
@@ -20,7 +27,16 @@ with open("90-文档-Data/sakila/db_description.yaml", "r") as f:
     logging.info(f"[DBDESC] 从YAML文件加载了 {len(desc_map)} 个表的描述")
 
 # 3. 连接 Milvus
-client = MilvusClient("text2sql_milvus_sakila.db")
+client = MilvusClient(uri="http://172.17.19.130:19530", token=os.getenv("MILVUS_TOKEN"))
+DATABASE_NAME = "sakila"
+if DATABASE_NAME not in client.list_databases():
+    try:
+        client.create_database(db_name=DATABASE_NAME)
+        logging.info(f"✓ {DATABASE_NAME} 创建成功")
+    except MilvusException as e:
+        logging.error(str(e))
+        exit
+client.use_database(db_name=DATABASE_NAME)
 
 # 4. 定义 Collection Schema
 vector_dim = len(embedding_function(["dummy"])[0])
@@ -35,15 +51,15 @@ schema = CollectionSchema(fields, description="DB Description Knowledge Base", e
 
 # 5. 创建 Collection（如不存在）
 collection_name = "dbdesc_knowledge"
-if not client.has_collection(collection_name):
-    client.create_collection(collection_name=collection_name, schema=schema)
-    logging.info(f"[DBDESC] 创建了新的集合 {collection_name}")
-else:
-    logging.info(f"[DBDESC] 集合 {collection_name} 已存在")
+if client.has_collection(collection_name):
+    client.drop_collection(collection_name=collection_name)
+    logging.info(f"[DDL] 删除表 {collection_name} 成功")
+client.create_collection(collection_name=collection_name, schema=schema)
+logging.info(f"✓ 表{collection_name} 创建成功")
 
 # 6. 为向量字段添加索引
 index_params = client.prepare_index_params()
-index_params.add_index(field_name="vector", index_type="AUTOINDEX", metric_type="COSINE", params={"nlist": 1024})
+index_params.add_index(field_name="vector", index_type="AUTOINDEX", metric_type="COSINE", params={})
 client.create_index(collection_name=collection_name, index_params=index_params)
 
 # 7. 批量插入描述
@@ -57,7 +73,12 @@ for tbl, cols in desc_map.items():
 logging.info(f"[DBDESC] 准备处理 {len(data)} 个字段描述")
 
 # 生成全部嵌入
-embeddings = embedding_function(texts)
+batch_size = 64 # maximum allowed batch size 64
+embeddings = []
+for i in range(0, len(texts), batch_size):
+    batch = texts[i:i+batch_size]
+    batch_embedding = embedding_function(batch)
+    embeddings.extend(batch_embedding)
 logging.info(f"[DBDESC] 成功生成了 {len(embeddings)} 个向量嵌入")
 
 # 组织为 Milvus insert 格式
