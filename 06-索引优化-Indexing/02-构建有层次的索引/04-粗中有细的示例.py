@@ -1,3 +1,5 @@
+import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
 from llama_index.core import VectorStoreIndex, Settings
 from llama_index.core.schema import IndexNode, Document
 from llama_index.llms.deepseek import DeepSeek 
@@ -7,7 +9,14 @@ from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core import get_response_synthesizer
 from typing import List
 # 配置全局设置
-Settings.llm = DeepSeek(model="deepseek-chat", temperature=0.1)
+from dotenv import load_dotenv
+load_dotenv()
+Settings.llm = DeepSeek(
+    model="deepseek-ai/DeepSeek-V3",
+    temperature=0.1,
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+    api_key=os.getenv("SILICON_FLOW_API_KEY")
+)
 Settings.embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-small-zh")
 # 创建游戏场景的描述（主文档）
 scene_descriptions = [
@@ -97,8 +106,8 @@ def query_scene(question: str):
 if __name__ == "__main__":
     questions = [
         "花果山里有什么特别的地方？",
-        "详细描述一下水帘洞的内部结构。",
-        "东海龙宫存放了哪些宝物？",
+        # "详细描述一下水帘洞的内部结构。",
+        # "东海龙宫存放了哪些宝物？",
     ]
     
     for q in questions:

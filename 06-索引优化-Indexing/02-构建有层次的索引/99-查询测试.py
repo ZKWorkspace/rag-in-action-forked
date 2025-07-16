@@ -1,8 +1,9 @@
 import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 import torch
-from pymilvus import MilvusClient
+from pymilvus import MilvusClient, MilvusException
 import logging
 
 # 设置日志
@@ -19,14 +20,19 @@ embedding_function = SentenceTransformer(
 )
 
 # 连接到Milvus
-client = MilvusClient("richman_bge_m3_v2.db")
+client = MilvusClient(uri="http://172.17.19.130:19530", token=os.getenv("MILVUS_TOKEN"))
+database_name="top10_billionaires_latest"
+if database_name not in client.list_databases():
+    logging.error(f"数据库{database_name}不存在")
+    exit
+client.use_database(db_name=database_name)
 
 def search_relevant_table(question):
     # 第一层检索：在summary集合中搜索最相关的sheet
     query_embedding = embedding_function.encode([question])[0]
     
     summary_results = client.search(
-        collection_name="billionaires_summary",
+        collection_name="summary",
         data=[query_embedding.tolist()],
         limit=1,
         output_fields=["table_name"],
@@ -43,7 +49,7 @@ def search_relevant_table(question):
     
     # 第二层检索：在details集合中搜索具体信息
     details_results = client.search(
-        collection_name="billionaires_details",
+        collection_name="details",
         data=[query_embedding.tolist()],
         filter=f"table_name == '{matched_table}'",
         limit=1,
@@ -81,12 +87,12 @@ def generate_answer(question):
     # 使用DeepSeek生成答案
     from openai import OpenAI
     client = OpenAI(
-        api_key=os.getenv("DEEPSEEK_API_KEY"),
-        base_url="https://api.deepseek.com/v1"
+        api_key=os.getenv("SILICON_FLOW_API_KEY"),
+        base_url=os.getenv("SILICON_FLOW_BASE_URL")
     )
 
     response = client.chat.completions.create(
-        model="deepseek-chat",
+        model="deepseek-ai/DeepSeek-V3",
         messages=[{
             "role": "user",
             "content": prompt
@@ -124,7 +130,7 @@ if __name__ == "__main__":
     for i, query in enumerate(test_queries, 1):
         print(f"\n测试 {i}/{len(test_queries)}")
         print(f"问题：{query}")
-        print("-" * 50)
+        # print("-" * 50)
         
         answer = generate_answer(query)
         print(f"答案：{answer}")

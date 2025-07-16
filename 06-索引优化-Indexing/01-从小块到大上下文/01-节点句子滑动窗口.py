@@ -1,10 +1,20 @@
+import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
+from dotenv import load_dotenv
 from llama_index.core import  VectorStoreIndex, Settings, Document
 from llama_index.core.node_parser import  SentenceWindowNodeParser, SentenceSplitter
 from llama_index.llms.deepseek import DeepSeek
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.core.postprocessor import MetadataReplacementPostProcessor # 元数据替换后处理器
 # 配置全局设置
-Settings.llm = DeepSeek(model="deepseek-chat", temperature=0.1)
+load_dotenv()
+Settings.llm = DeepSeek(
+    model="deepseek-ai/DeepSeek-V3",
+    temperature=0.1,
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+    api_key=os.getenv("SILICON_FLOW_API_KEY")
+)
+# LlamaIndex会将从huggingface拉取的模型缓存到路径/tmp/llama_index下
 Settings.embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-small-zh")
 Settings.text_splitter = SentenceSplitter(separator="\n",  chunk_size=50, chunk_overlap=0)
 # 准备知识文本并创建Document对象
@@ -42,7 +52,7 @@ window_query_engine = sentence_index.as_query_engine(
     similarity_top_k=2,
     node_postprocessors=[
         MetadataReplacementPostProcessor(target_metadata_key="window")
-    ]
+    ] # 将节点内容page_content替换为Metadata中的"windows"键
 )
 # 创建基础查询引擎
 base_query_engine = base_index.as_query_engine(

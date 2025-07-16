@@ -1,3 +1,6 @@
+import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
+from dotenv import load_dotenv
 from llama_index.core import VectorStoreIndex, StorageContext, Document, Settings
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.storage.docstore import SimpleDocumentStore
@@ -5,7 +8,13 @@ from llama_index.core.postprocessor import PrevNextNodePostprocessor, AutoPrevNe
 from llama_index.llms.deepseek import DeepSeek
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 # 配置全局设置
-Settings.llm = DeepSeek(model="deepseek-chat", temperature=0.1)
+load_dotenv()
+Settings.llm = DeepSeek(
+    model="deepseek-ai/DeepSeek-V3",
+    temperature=0.1,
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+    api_key=os.getenv("SILICON_FLOW_API_KEY")
+)
 Settings.embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-small-zh")
 Settings.node_parser = SentenceSplitter()
 # 准备游戏剧情文本
@@ -28,11 +37,19 @@ base_engine = index.as_query_engine(
     response_mode="tree_summarize"
 )
 # 带固定前后文的查询引擎
+#
+# response_mode      主要作用             适用场景
+# default         直接拼接所有节点      节点数量较少、内容较短时
+# refine          递进式完善答案        需要逐步完善答案、节点内容较多时
+# tree_summarize  分组总结再汇总        节点数量较多、内容较长，需要分层整合信息时。
+# compact         压缩到最大上下文      节点内容较多，但只关心最相关的部分，或 LLM 上下文长度有限时
+# accumulate      各节点独立回答后拼接   希望看到每个节点的独立回答，适合多视角、多证据场景。
+# no_text         不返回文本            只需元数据/特殊场景
 prev_next_engine = index.as_query_engine(
     similarity_top_k=1,
     node_postprocessors=[
         PrevNextNodePostprocessor(docstore=docstore, num_nodes=2)
-    ],
+    ], # 每个被检索到的节点，都向前和向后分别附上2个节点
     response_mode="tree_summarize"
 )
 # 带自动前后文的查询引擎
@@ -41,7 +58,7 @@ auto_engine = index.as_query_engine(
     node_postprocessors=[
         AutoPrevNextNodePostprocessor(
             docstore=docstore,
-            num_nodes=3,
+            num_nodes=3, # 最多可以扩展的范围
             verbose=True
         )
     ],
@@ -50,7 +67,7 @@ auto_engine = index.as_query_engine(
 # 测试不同类型的问题及不同的查询引擎
 test_questions = [
     "悟空从忘川寺获得记忆后发生了什么？",  # 应该找后文
-    "悟空是如何到达业火山的？",  # 应该找前文
+    "悟空是如何到达业火山的？",  # 不用扩展
     "悟空为什么会在山洞中醒来？",  # 应该找前文
 ]
 print("=== 基础查询引擎的结果 ===")

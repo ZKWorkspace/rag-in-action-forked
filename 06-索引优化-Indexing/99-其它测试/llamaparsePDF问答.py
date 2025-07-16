@@ -3,11 +3,20 @@ from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.core import VectorStoreIndex
 from llama_index.core import Settings
 
+import os
 from dotenv import load_dotenv
 load_dotenv()   
 
-embed_model = OpenAIEmbedding(model="text-embedding-3-small")
-llm = OpenAI(model="gpt-3.5-turbo-0125")
+embed_model = OpenAIEmbedding(
+    model="text-embedding-3-small",
+    api_key=os.getenv("OPENAI_API_KEY"),
+    api_base=os.getenv("OPENAI_BASE_URL"),
+)
+llm = OpenAI(
+    model="gpt-4o-mini",
+    api_key=os.getenv("OPENAI_API_KEY"),
+    api_base=os.getenv("OPENAI_BASE_URL"),
+)
 
 Settings.llm = llm
 Settings.embed_model = embed_model
@@ -15,7 +24,7 @@ Settings.embed_model = embed_model
 # LlamaParse PDF reader for PDF Parsing
 from llama_parse import LlamaParse
 documents = LlamaParse(result_type="markdown").load_data(
-    "data/PDF/uber_10q_march_2022.pdf"
+    "90-文档-Data/复杂PDF/uber_10q_march_2022.pdf"
 )
 # Started parsing the file under job_id b76a572b-d2bb-42ae-bad9-b9810049f1af
 
@@ -23,7 +32,7 @@ documents = LlamaParse(result_type="markdown").load_data(
 from llama_index.core.node_parser import MarkdownElementNodeParser
 
 node_parser = MarkdownElementNodeParser(
-    llm=OpenAI(model="gpt-3.5-turbo-0125"), num_workers=8
+    llm=OpenAI(model="gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY"), api_base=os.getenv("OPENAI_BASE_URL")), num_workers=8
 )
 
 nodes = node_parser.get_nodes_from_documents(documents)
@@ -43,7 +52,9 @@ from llama_index.postprocessor.flag_embedding_reranker import (
 
 reranker = FlagEmbeddingReranker(
     top_n=5,
-    model="BAAI/bge-reranker-large",
+    model="bce-reranker-base_v1",
+    api_key=os.getenv("OPENAI_API_KEY"),
+    api_base=os.getenv("OPENAI_BASE_URL"),
 )
 
 recursive_query_engine = recursive_index.as_query_engine(

@@ -15,8 +15,16 @@ from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core import get_response_synthesizer
 
 # 全局设置
-Settings.llm = OpenAI(model="gpt-3.5-turbo")
-Settings.embed_model = OpenAIEmbedding(model="text-embedding-3-small")
+Settings.llm = OpenAI(
+    model="gpt-4o-mini",
+    api_key=os.getenv("OPENAI_API_KEY"),
+    api_base=os.getenv("OPENAI_BASE_URL"),
+)
+Settings.embed_model = OpenAIEmbedding(
+    model="text-embedding-3-small",
+    api_key=os.getenv("OPENAI_API_KEY"),
+    api_base=os.getenv("OPENAI_BASE_URL"),
+)
 
 # ---------------------------
 # 1. 解析 PDF 结构，提取文本和表格
@@ -26,7 +34,7 @@ file_path = "90-文档-Data/复杂PDF/billionaires_page-1-5.pdf"  # 修改为你
 elements = partition_pdf(
     file_path,
     strategy="hi_res",  # 使用高精度策略
-    extract_tables_in_paragraphs=True,  # 提取段落中的表格
+    extract_tables_in_paragraphs=True,  # 提取段落中的表格!!!
     include_metadata=True  # 包含元数据信息
 )  # 解析PDF文档
 
@@ -84,7 +92,11 @@ for element in elements:
 # ---------------------------
 # 3. 创建 Pandas Query Engine 并查询
 # ---------------------------
-llm_for_table = OpenAI(model="gpt-4")
+llm_for_table = OpenAI(
+    model="gpt-4o-mini",
+    api_key=os.getenv("OPENAI_API_KEY"),
+    api_base=os.getenv("OPENAI_BASE_URL"),
+)
 
 df_query_engines = [
     PandasQueryEngine(table_info["table"], llm=llm_for_table)

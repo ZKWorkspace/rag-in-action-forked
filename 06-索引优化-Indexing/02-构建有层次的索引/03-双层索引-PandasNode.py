@@ -1,5 +1,6 @@
 # 双层检索-富豪榜 - 需要pip install openpyxl
 import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
 from dotenv import load_dotenv
 import pandas as pd
 import logging
@@ -21,8 +22,16 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 load_dotenv()
 
 # 设置全局设置
-Settings.llm = OpenAI(model="gpt-3.5-turbo")
-Settings.embed_model = OpenAIEmbedding(model="text-embedding-3-small")
+Settings.llm = OpenAI(
+    model="gpt-4o-mini",
+    api_base=os.getenv("O3_BASE_URL"),
+    api_key=os.getenv("O3_API_KEY"),
+)
+Settings.embed_model = OpenAIEmbedding(
+    model="text-embedding-3-small",
+    api_base=os.getenv("O3_BASE_URL"),
+    api_key=os.getenv("O3_API_KEY"),
+)
 
 # 3. 加载Excel文件并准备数据
 excel_file = "90-文档-Data/复杂PDF/十大富豪/世界十大富豪.xlsx"
@@ -98,7 +107,7 @@ recursive_retriever = RecursiveRetriever(
 )
 
 # 创建响应合成器
-response_synthesizer = get_response_synthesizer(response_mode="compact")
+response_synthesizer = get_response_synthesizer(response_mode="compact") # 对检索结果进行整合
 
 # 创建查询引擎
 query_engine = RetrieverQueryEngine.from_args(

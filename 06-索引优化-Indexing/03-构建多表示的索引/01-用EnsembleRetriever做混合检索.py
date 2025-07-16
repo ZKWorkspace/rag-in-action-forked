@@ -1,3 +1,5 @@
+import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_deepseek import ChatDeepSeek
 from langchain.chains import RetrievalQA
@@ -43,7 +45,13 @@ ensemble_retriever = EnsembleRetriever(
     weights=[0.5, 0.5] # 权重，用于平衡两个检索器的贡献 -> weightedreranker
 )
 # 创建使用混合检索器的问答链和使用单一检索器的问答链（用于对比）
-llm = ChatDeepSeek(model="deepseek-chat")
+from dotenv import load_dotenv
+load_dotenv()
+llm = ChatDeepSeek(
+    model="deepseek-ai/DeepSeek-V3",
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+    api_key=os.getenv("SILICON_FLOW_API_KEY")
+)
 # 创建混合检索问答链 -> 有点像集成学习方法
 ensemble_qa = RetrievalQA.from_chain_type(
     llm=llm,

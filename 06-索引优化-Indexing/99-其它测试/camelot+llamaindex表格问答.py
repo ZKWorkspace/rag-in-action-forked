@@ -1,6 +1,6 @@
 import os
 from typing import List
-import camelot
+import camelot # 从PDF中提取表格数据的开源工具pip install "camelot-py[cv]"
 
 # 导入 LlamaIndex 相关模块
 from llama_index.core import VectorStoreIndex, Settings
@@ -14,8 +14,16 @@ from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core import get_response_synthesizer
 
 # 全局设置：使用 GPT-3.5-turbo 作为 LLM，选用小型号的 OpenAIEmbedding
-Settings.llm = OpenAI(model="gpt-3.5-turbo")
-Settings.embed_model = OpenAIEmbedding(model="text-embedding-3-small")
+Settings.llm = OpenAI(
+    model="gpt-4o-mini",
+    api_key=os.getenv("OPENAI_API_KEY"),
+    api_base=os.getenv("OPENAI_BASE_URL"),
+)
+Settings.embed_model = OpenAIEmbedding(
+    model="text-embedding-3-small",
+    api_key=os.getenv("OPENAI_API_KEY"),
+    api_base=os.getenv("OPENAI_BASE_URL"),
+)
 
 # ---------------------------
 # 1. 加载 PDF 正文（叙述性文本）
@@ -49,7 +57,11 @@ table_dfs = get_tables(file_path, pages=[3, 25])
 # 3. 针对每个表格创建 Pandas Query Engine
 # ---------------------------
 # 建议针对表格查询使用更强的 LLM，这里使用 GPT-4（也可使用其它模型）
-llm_for_table = OpenAI(model="gpt-4")
+llm_for_table = OpenAI(
+    model="gpt-4o-mini",
+    api_key=os.getenv("OPENAI_API_KEY"),
+    api_base=os.getenv("OPENAI_BASE_URL"),
+)
 df_query_engines = [
     PandasQueryEngine(table_df, llm=llm_for_table) for table_df in table_dfs
 ]

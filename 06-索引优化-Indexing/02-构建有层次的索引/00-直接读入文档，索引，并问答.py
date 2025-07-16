@@ -5,8 +5,19 @@ from llama_index.llms.openai import OpenAI
 from llama_index.embeddings.openai import OpenAIEmbedding
 
 # 全局设置
-Settings.llm = OpenAI(model="gpt-3.5-turbo")
-Settings.embed_model = OpenAIEmbedding(model="text-embedding-3-small")
+import os
+from dotenv import load_dotenv
+load_dotenv()
+Settings.llm = OpenAI(
+    model="gpt-4o-mini",
+    api_key=os.getenv("OPENAI_API_KEY"),
+    api_base=os.getenv("OPENAI_BASE_URL"),
+)
+Settings.embed_model = OpenAIEmbedding(
+    model="text-embedding-3-small",
+    api_key=os.getenv("OPENAI_API_KEY"),
+    api_base=os.getenv("OPENAI_BASE_URL"),
+)
 
 # ---------------------------
 # 1. 解析 PDF 结构，提取文本和表格

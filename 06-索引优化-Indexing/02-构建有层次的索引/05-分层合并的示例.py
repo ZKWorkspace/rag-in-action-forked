@@ -1,3 +1,5 @@
+import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
 from llama_index.core import VectorStoreIndex, StorageContext, Document, Settings
 from llama_index.core.node_parser import HierarchicalNodeParser, get_leaf_nodes, get_root_nodes
 from llama_index.core.storage.docstore import SimpleDocumentStore
@@ -5,7 +7,14 @@ from llama_index.core.retrievers import AutoMergingRetriever
 from llama_index.llms.deepseek import DeepSeek 
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 # 配置全局设置
-Settings.llm = DeepSeek(model="deepseek-chat", temperature=0.1)
+from dotenv import load_dotenv
+load_dotenv()
+Settings.llm = DeepSeek(
+    model="deepseek-ai/DeepSeek-V3",
+    temperature=0.1,
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+    api_key=os.getenv("SILICON_FLOW_API_KEY")
+)
 Settings.embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-small-zh")
 # 准备游戏知识文本
 game_knowledge = """《灭神纪∙猢狲》的战斗系统设计精妙绝伦。玩家可以在战斗中自由切换多种战斗形态，每种形态都有其独特优势。金刚形态下……魔佛形态则……"""

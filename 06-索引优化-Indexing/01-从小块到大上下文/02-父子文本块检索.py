@@ -1,8 +1,18 @@
+import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
+from dotenv import load_dotenv
 from langchain_deepseek import ChatDeepSeek 
 from langchain_huggingface import HuggingFaceEmbeddings 
 # 初始化语言模型和向量嵌入模型
-llm = ChatDeepSeek(model="deepseek-chat", temperature=0.1)
-embed_model = HuggingFaceEmbeddings(model_name="BAAI/bge-small-zh")
+load_dotenv()
+llm = ChatDeepSeek(
+    model="deepseek-ai/DeepSeek-V3",
+    temperature=0.1,
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+    api_key=os.getenv("SILICON_FLOW_API_KEY")
+)
+# LangChain会将从huggingface拉取的模型缓存到路径~/.cache/huggingface/hub下
+embed_model = HuggingFaceEmbeddings(model_name="BAAI/bge-small-zh-v1.5")
 # 准备游戏知识文本，创建Document对象。
 from langchain.schema import Document
 game_knowledge = """
@@ -57,6 +67,11 @@ PROMPT = PromptTemplate(
     input_variables=["context", "question"]
 )
 # 创建问答链
+# 各种类型的问答链类型：
+# stuff:     直接把所有检索结果拼接后作为上下文传递给LLM，适合短小文档且数量不多的场景
+# map_reduce:先对每个检索结果分别应用LLM生成子答案，再用LLM对所有子答案汇总，适合文档较多、内容较长的场景
+# refine:    先用第一个文档生成初步答案，然后依次用后续文档对答案进行补充和完善，适合需要逐步完善答案的场景
+# map_rerank:先对每个检索结果分别应用LLM生成答案和置信度分数，最后选择置信度最高的答案，适合需要高置信度答案的场景
 qa_chain = RetrievalQA.from_chain_type(
     llm=llm,
     chain_type="stuff", # 问答链类型

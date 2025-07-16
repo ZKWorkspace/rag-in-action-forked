@@ -1,10 +1,11 @@
 # 双层检索-富豪榜 - 需要pip install openpyxl
 import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
 from dotenv import load_dotenv
 import pandas as pd
 from sentence_transformers import SentenceTransformer
 import torch
-from pymilvus import MilvusClient, DataType, FieldSchema, CollectionSchema
+from pymilvus import MilvusClient, MilvusException, DataType, FieldSchema, CollectionSchema
 import logging
 
 # 设置日志
@@ -21,10 +22,19 @@ embedding_function = SentenceTransformer(
 )
 
 # 连接到Milvus
-client = MilvusClient("richman_bge_m3_v2.db")
+client = MilvusClient(uri="http://172.17.19.130:19530", token=os.getenv("MILVUS_TOKEN"))
+database_name="top10_billionaires_latest"
+if database_name not in client.list_databases():
+    try:
+        client.create_database(db_name=database_name)
+        print(f"✓ {database_name} 创建成功")
+    except MilvusException as e:
+        print(str(e))
+        exit
+client.use_database(db_name=database_name)
 
 # 1. 创建summary向量数据库
-summary_collection_name = "billionaires_summary"
+summary_collection_name = "summary"
 summary_fields = [
     FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
     FieldSchema(name="vector", dtype=DataType.FLOAT_VECTOR, dim=1024),
@@ -32,14 +42,16 @@ summary_fields = [
 ]
 
 summary_schema = CollectionSchema(summary_fields, "富豪榜年份摘要")
-if not client.has_collection(summary_collection_name):
-    client.create_collection(
-        collection_name=summary_collection_name,
-        schema=summary_schema
-    )
+if summary_collection_name in client.list_collections():
+    client.drop_collection(collection_name=summary_collection_name)
+    print(f"✓ 删除表{summary_collection_name}成功")
+client.create_collection(
+    collection_name=summary_collection_name,
+    schema=summary_schema
+)
 
 # 2. 创建details向量数据库
-details_collection_name = "billionaires_details"
+details_collection_name = "details"
 details_fields = [
     FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
     FieldSchema(name="vector", dtype=DataType.FLOAT_VECTOR, dim=1024),
@@ -48,11 +60,13 @@ details_fields = [
 ]
 
 details_schema = CollectionSchema(details_fields, "富豪榜详细信息")
-if not client.has_collection(details_collection_name):
-    client.create_collection(
-        collection_name=details_collection_name,
-        schema=details_schema
-    )
+if details_collection_name in client.list_collections():
+    client.drop_collection(collection_name=details_collection_name)
+    print(f"✓ 删除表{details_collection_name}成功")
+client.create_collection(
+    collection_name=details_collection_name,
+    schema=details_schema
+)
 
 # 3. 加载Excel文件并准备数据
 excel_file = "90-文档-Data/复杂PDF/十大富豪/世界十大富豪.xlsx"
@@ -147,6 +161,8 @@ except Exception as e:
 
 # 加载集合以使索引生效
 try:
+    client.flush(summary_collection_name)
+    client.flush(details_collection_name)
     client.load_collection(summary_collection_name)
     client.load_collection(details_collection_name)
     logging.info("成功加载集合")
@@ -189,6 +205,7 @@ def search_relevant_table(question):
     if not details_results or not details_results[0]:
         return None, None
     
+    logging.info(f"检索结果:\n{matched_table, details_results[0][0]['entity']['content']}")
     return matched_table, details_results[0][0]['entity']['content']
 
 def generate_answer(question):
@@ -213,12 +230,12 @@ def generate_answer(question):
     # 使用DeepSeek生成答案
     from openai import OpenAI
     client = OpenAI(
-        api_key=os.getenv("DEEPSEEK_API_KEY"),
-        base_url="https://api.deepseek.com/v1"
+        api_key=os.getenv("SILICON_FLOW_API_KEY"),
+        base_url=os.getenv("SILICON_FLOW_BASE_URL"),
     )
 
     response = client.chat.completions.create(
-        model="deepseek-chat",
+        model="deepseek-ai/DeepSeek-V3",
         messages=[{
             "role": "user",
             "content": prompt

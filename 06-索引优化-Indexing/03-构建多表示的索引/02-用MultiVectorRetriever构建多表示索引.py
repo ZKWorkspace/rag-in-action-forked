@@ -1,3 +1,6 @@
+import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
+os.environ["USER_AGENT"] = "RagInAction/1.0 (contact: zhaokun90@outlook.com)"
 # 加载文档
 from langchain_community.document_loaders import WebBaseLoader
 loader = WebBaseLoader("https://lilianweng.github.io/posts/2023-06-23-agent/")
@@ -9,14 +12,15 @@ from langchain_core.output_parsers import StrOutputParser
 chain = (
     {"doc": lambda x: x.page_content}
     | ChatPromptTemplate.from_template("Summarize the following document:\n\n{doc}")
-    | ChatDeepSeek(model="deepseek-chat")
+    | ChatDeepSeek(model="deepseek-ai/DeepSeek-V3", api_base=os.getenv("SILICON_FLOW_BASE_URL"), api_key=os.getenv("SILICON_FLOW_API_KEY"))
     | StrOutputParser()
 )
 summaries = chain.batch(docs, {"max_concurrency": 5})
 # 设置多向量检索器
 from langchain.storage import InMemoryByteStore # 内存存储
 from langchain_huggingface import HuggingFaceEmbeddings # 向量模型
-from langchain_community.vectorstores import Chroma # 向量数据库
+# from langchain_community.vectorstores import Chroma # 向量数据库
+from langchain_chroma import Chroma
 from langchain.retrievers.multi_vector import MultiVectorRetriever # 多向量检索器
 embed_model = HuggingFaceEmbeddings(model_name="BAAI/bge-small-zh") # 向量模型
 vectorstore = Chroma(collection_name="summaries", embedding_function= embed_model) # 向量数据库
@@ -35,10 +39,10 @@ summary_docs = [
     Document(page_content=s, metadata={id_key: doc_ids[i]})
     for i, s in enumerate(summaries)
 ]
-retriever.vectorstore.add_documents(summary_docs)
-retriever.docstore.mset(list(zip(doc_ids, docs)))
+retriever.vectorstore.add_documents(summary_docs) # 存被检索的摘要，vectorstore
+retriever.docstore.mset(list(zip(doc_ids, docs))) # 存检出结果输出的全文，docstore
 # 使用检索器进行查询
 query = "Memory in agents"
-retrieved_docs = retriever.get_relevant_documents(query,n_results=1)
+retrieved_docs = retriever.invoke(query,n_results=1) # 通过summary找到了原始文档内容
 
 print(retrieved_docs)
