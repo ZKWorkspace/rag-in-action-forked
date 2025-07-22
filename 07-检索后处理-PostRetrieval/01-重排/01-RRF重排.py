@@ -1,5 +1,8 @@
 # 导入相关的库
 import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
+from dotenv import load_dotenv
+load_dotenv()
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -155,13 +158,18 @@ template = """你是一个帮助用户生成多个搜索查询的助手。
 1. 从不同的角度理解原问题
 2. 使用不同的关键词和表达方式
 3. 覆盖问题的不同方面
+4. 输出的每一行表示一个角度的搜索查询，不同角度按行分隔
 
 原问题：{question}
 
 请生成4个相关的搜索查询："""
 
 prompt_rag_fusion = ChatPromptTemplate.from_template(template)
-llm = ChatDeepSeek(model="deepseek-chat")
+llm = ChatDeepSeek(
+    model="deepseek-ai/DeepSeek-V3",
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+    api_key=os.getenv("SILICON_FLOW_API_KEY")
+)
 
 # 创建查询生成链
 generate_queries = (
@@ -176,8 +184,8 @@ print("✅ 多查询生成器配置完成")
 print("\n🎯 开始RRF重排测试...")
 questions = [
     "山西有哪些著名的旅游景点？",
-    "云冈石窟的历史背景是什么？",
-    "五台山的文化和宗教意义是什么？"
+    # "云冈石窟的历史背景是什么？",
+    # "五台山的文化和宗教意义是什么？"
 ]
 
 # 对每个问题进行RRF检索和重排

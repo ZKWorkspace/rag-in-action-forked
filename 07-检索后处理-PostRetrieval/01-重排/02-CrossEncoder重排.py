@@ -1,3 +1,5 @@
+import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 
@@ -47,6 +49,7 @@ documents = [
     "五台山是中国四大佛教名山之一，以文殊菩萨道场闻名。",
     "云冈石窟是中国三大石窟之一，以精美的佛教雕塑著称。",
     "平遥古城是中国保存最完整的古代县城之一，被列为世界文化遗产。",
+    "平遥的特色美食是酱牛肉", # 效果也一般，这条毫不相干的语料依然获得了与上一条同等水平的分数
 ]
 
 print(f"查询: {query}")

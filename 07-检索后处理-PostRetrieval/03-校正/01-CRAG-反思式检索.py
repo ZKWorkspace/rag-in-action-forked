@@ -16,14 +16,15 @@ CRAG是一种改进的RAG方法，通过以下步骤提高检索质量：
 # ================================
 
 #1 为3篇博客文章创建索引
+import os
+from dotenv import load_dotenv
+# 加载环境变量（包含OpenAI API密钥等）
+load_dotenv()
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
-from dotenv import load_dotenv
 
-# 加载环境变量（包含OpenAI API密钥等）
-load_dotenv()
 
 # 定义要索引的博客文章URL
 # 这些是关于AI智能体、提示工程和对抗攻击的技术博客
@@ -52,7 +53,11 @@ doc_splits = text_splitter.split_documents(docs_list)
 vectorstore = Chroma.from_documents(
     documents=doc_splits,
     collection_name="rag-chroma",  # 集合名称
-    embedding=OpenAIEmbeddings(),  # 使用OpenAI的text-embedding-ada-002模型
+    embedding=OpenAIEmbeddings(
+        model="text-embedding-ada-002",
+        api_key=os.getenv("OPENAI_API_KEY"),
+        base_url=os.getenv("OPENAI_BASE_URL"),
+    ),  # 使用OpenAI的text-embedding-ada-002模型
 )
 # 将向量存储转换为检索器，用于后续的相似性搜索
 retriever = vectorstore.as_retriever()
@@ -63,7 +68,7 @@ retriever = vectorstore.as_retriever()
 
 #2 检索评分器
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 from langchain_openai import ChatOpenAI
 
 # 定义评分结果的数据模型
@@ -81,7 +86,12 @@ class GradeDocuments(BaseModel):
 
 # 创建具有结构化输出的语言模型
 # temperature=0.5: 适中的随机性，平衡一致性和创造性
-llm = ChatOpenAI(model="gpt-4o", temperature=0.5)
+llm = ChatOpenAI(
+    model="gpt-4o-mini",
+    api_key=os.getenv("OPENAI_API_KEY"),
+    base_url=os.getenv("OPENAI_BASE_URL"),
+    temperature=0.5
+)
 # 将模型输出限制为GradeDocuments格式
 structured_llm_grader = llm.with_structured_output(GradeDocuments)
 
@@ -103,10 +113,17 @@ retrieval_grader = grade_prompt | structured_llm_grader
 
 # 测试评分器
 question = "agent memory"  # 测试问题：关于智能体记忆
-docs = retriever.get_relevant_documents(question)  # 检索相关文档
+docs = retriever.invoke(question)  # 检索相关文档
 doc_txt = docs[1].page_content  # 获取第二个文档的内容
 # 打印评分结果，验证评分器是否正常工作
-print(retrieval_grader.invoke({"question": question, "document": doc_txt}))
+# print(retrieval_grader.invoke({"question": question, "document": doc_txt}))
+print(f"用户问题：{question}")
+print("=" * 100)
+for i, doc in enumerate(docs, 1):
+    print(f"文档 {i} : {doc.page_content[:200]}...")
+    score = retrieval_grader.invoke({"question": question, "document": doc_txt})
+    print(f"文档 {i} 相关性判断结果：{score.binary_score}")
+    print("=" * 100)
 
 # ================================
 # 第三部分：RAG生成链
@@ -119,29 +136,36 @@ from langchain_core.output_parsers import StrOutputParser
 # 从LangChain Hub获取预构建的RAG提示模板
 # 这个模板专门设计用于基于上下文回答问题
 prompt = hub.pull("rlm/rag-prompt")
+print(f"Prompt Template:\n{prompt}")
 
 # 创建用于生成答案的语言模型
 # temperature=0: 确保输出的一致性和可重复性
-llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
+llm = ChatOpenAI(
+    model="gpt-4o-mini",
+    api_key=os.getenv("OPENAI_API_KEY"),
+    base_url=os.getenv("OPENAI_BASE_URL"), 
+    temperature=0
+)
 
-# 文档格式化函数
-def format_docs(docs):
-    """将文档列表格式化为单一字符串。
+# # 文档格式化函数
+# def format_docs(docs):
+#     """将文档列表格式化为单一字符串。
     
-    Args:
-        docs: 文档对象列表
+#     Args:
+#         docs: 文档对象列表
         
-    Returns:
-        str: 用双换行符连接的文档内容字符串
-    """
-    return "\n\n".join(doc.page_content for doc in docs)
+#     Returns:
+#         str: 用双换行符连接的文档内容字符串
+#     """
+#     return "\n\n".join(doc.page_content for doc in docs)
 
 # 构建RAG生成链：提示模板 + 语言模型 + 字符串解析器
 rag_chain = prompt | llm | StrOutputParser()
 
 # 测试生成链
 generation = rag_chain.invoke({"context": docs, "question": question})
-print(generation)
+print(f"RAG输出：{generation}")
+print("=" * 100)
 
 # ================================
 # 第四部分：查询重写器
@@ -149,7 +173,12 @@ print(generation)
 
 #4 设置问题重写器
 # 创建用于查询重写的语言模型
-llm = ChatOpenAI(model="gpt-4o", temperature=0.5)
+llm = ChatOpenAI(
+    model="gpt-4o-mini",
+    api_key=os.getenv("OPENAI_API_KEY"),
+    base_url=os.getenv("OPENAI_BASE_URL"),
+    temperature=0.5
+)
 
 # 查询重写的系统提示
 # 目的是将模糊或不准确的查询重写为更适合搜索的形式
@@ -169,7 +198,9 @@ re_write_prompt = ChatPromptTemplate.from_messages(
 # 创建查询重写链
 question_rewriter = re_write_prompt | llm | StrOutputParser()
 # 测试查询重写功能
-question_rewriter.invoke({"question": question})
+rewrited_question = question_rewriter.invoke({"question": question})
+print(f"查询重写后的问题表述：{rewrited_question}")
+print("=" * 100)
 
 # ================================
 # 第五部分：网络搜索工具
@@ -188,7 +219,7 @@ web_search_tool = TavilySearchResults(k=3)
 
 #6 设置CRAG所需的导入
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 from langchain_core.runnables import RunnablePassthrough
 
 #7 定义图状态
@@ -236,7 +267,7 @@ def retrieve(state):
 
     # 使用向量检索器获取相关文档
     # 基于语义相似性返回最相关的文档片段
-    documents = retriever.get_relevant_documents(question)
+    documents = retriever.invoke(question)
     return {"documents": documents, "question": question}
 
 def generate(state):
@@ -441,6 +472,49 @@ workflow.add_edge("generate", END)
 
 # 编译工作流图为可执行的应用
 app = workflow.compile()
+
+# 打印图结构
+print("=== DAG结构 ===")
+app.get_graph().print_ascii() # pip install grandalf
+#                 +-----------+         
+#                 | __start__ |         
+#                 +-----------+         
+#                        *              
+#                        *              
+#                        *              
+#                  +----------+         
+#                  | retrieve |         
+#                  +----------+         
+#                        *              
+#                        *              
+#                        *              
+#               +-----------------+     
+#               | grade_documents |     
+#               +-----------------+     
+#                 ..           ..       
+#               ..               ..     
+#             ..                   ..   
+# +-----------------+                .. 
+# | transform_query |                 . 
+# +-----------------+                 . 
+#           *                         . 
+#           *                         . 
+#           *                         . 
+# +-----------------+                .. 
+# | web_search_node |              ..   
+# +-----------------+            ..     
+#                 **           ..       
+#                   **       ..         
+#                     **   ..           
+#                  +----------+         
+#                  | generate |         
+#                  +----------+         
+#                        *              
+#                        *              
+#                        *              
+#                   +---------+         
+#                   | __end__ |         
+#                   +---------+ 
 
 # ================================
 # 第十部分：运行CRAG系统

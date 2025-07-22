@@ -1,3 +1,7 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 from datetime import datetime, timedelta
 import faiss
 from langchain.retrievers import TimeWeightedVectorStoreRetriever
@@ -41,7 +45,11 @@ print("🔄 初始化时效加权重排系统...")
 
 # 1. 配置嵌入模型
 print("📥 配置OpenAI嵌入模型...")
-embeddings_model = OpenAIEmbeddings()
+embeddings_model = OpenAIEmbeddings(
+    model="text-embedding-3-small",
+    api_key=os.getenv("OPENAI_API_KEY"),
+    base_url=os.getenv("OPENAI_BASE_URL"),
+)
 print("  模型: OpenAI Embeddings")
 print("  维度: 1536维向量")
 print("  注意: 需要配置OPENAI_API_KEY环境变量")

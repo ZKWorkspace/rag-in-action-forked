@@ -3,6 +3,8 @@ LLMLingua文本压缩示例
 LLMLingua是一个用于压缩长文本的工具,可以在保持核心信息的同时减少token数量
 适用于RAG系统中的检索后处理,降低LLM输入成本
 """
+import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
 
 from llmlingua import PromptCompressor
 

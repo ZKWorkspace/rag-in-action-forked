@@ -1,3 +1,5 @@
+import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
 from transformers import AutoTokenizer, AutoModel
 import torch
 
@@ -46,7 +48,8 @@ query = "山西有哪些著名的旅游景点？"
 documents = [
     "五台山是中国四大佛教名山之一，以文殊菩萨道场闻名。",
     "云冈石窟是中国三大石窟之一，以精美的佛教雕塑著称。", 
-    "平遥古城是中国保存最完整的古代县城之一，被列为世界文化遗产。"
+    "平遥古城是中国保存最完整的古代县城之一，被列为世界文化遗产。",
+    "酱牛肉是平遥的特色美食",
 ]
 
 print(f"查询: {query}")

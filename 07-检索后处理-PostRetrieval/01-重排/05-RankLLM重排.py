@@ -1,9 +1,14 @@
+import os
+os.environ['HF_ENDPOINT']= 'https://hf-mirror.com'
+from dotenv import load_dotenv
+load_dotenv()
+
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.retrievers.contextual_compression import ContextualCompressionRetriever
-from langchain_community.document_compressors.rankllm_rerank import RankLLMRerank
+from langchain_community.document_compressors.rankllm_rerank import RankLLMRerank # pip install rank_llm
 import torch
 
 """
