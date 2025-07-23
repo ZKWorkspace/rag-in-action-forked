@@ -1,8 +1,11 @@
 from langchain.prompts import PromptTemplate
-from langchain_openai import OpenAI
-from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_deepseek import ChatDeepSeek
+from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # 定义不同业务场景的提示模板
 templates = {
@@ -83,7 +86,7 @@ def get_prompt_template_by_question(question):
     只需返回对应的场景标识符,如 'customer_service'
     """
     
-    intent = llm.invoke(intent_prompt).strip()
+    intent = llm.invoke(intent_prompt).content.strip()
     
     if intent in templates:
         return PromptTemplate.from_template(templates[intent])
@@ -93,7 +96,11 @@ def get_prompt_template_by_question(question):
 # 获取相似案例
 def get_similar_cases(scenario, query, k=2):
     # 创建向量数据库
-    embeddings = OpenAIEmbeddings(openai_api_key=os.getenv("OPENAI_API_KEY"))
+    embeddings = OpenAIEmbeddings(
+        model="BAAI/bge-m3",
+        api_key=os.getenv("SILICON_FLOW_API_KEY"),
+        base_url=os.getenv("SILICON_FLOW_BASE_URL"),
+    )
     db = FAISS.from_texts(case_database[scenario], embeddings)
     
     # 检索相似案例
@@ -103,7 +110,11 @@ def get_similar_cases(scenario, query, k=2):
 # 示例使用
 
 # 初始化LLM
-llm = OpenAI(openai_api_key=os.getenv("OPENAI_API_KEY"))
+llm = ChatDeepSeek(
+    model="deepseek-ai/DeepSeek-V3",
+    api_key=os.getenv("SILICON_FLOW_API_KEY"),
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+)
 
 # 测试不同场景的路由选择
 scenarios = ["customer_service", "technical_support", "business_analysis"]
@@ -140,4 +151,4 @@ for scenario in scenarios:
     # 生成回复
     response = llm.invoke(prompt_template.format(**template_vars))
     print("\n生成的回复:")
-    print(response)
+    print(response.content)

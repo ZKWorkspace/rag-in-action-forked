@@ -1,10 +1,13 @@
 from langchain.prompts import PromptTemplate
 from langchain_community.document_loaders import TextLoader
 from langchain.text_splitter import CharacterTextSplitter
-from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAI
+from langchain_deepseek import ChatDeepSeek
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # 1. 加载文档
 loader = TextLoader("90-文档-Data/黑悟空/设定.txt")
@@ -15,7 +18,11 @@ text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 texts = text_splitter.split_documents(documents)
 
 # 3. 创建向量数据库
-embeddings = OpenAIEmbeddings(openai_api_key=os.getenv("OPENAI_API_KEY"))
+embeddings = OpenAIEmbeddings(
+    model="text-embedding-3-small",
+    api_key=os.getenv("OPENAI_API_KEY"),
+    base_url=os.getenv("OPENAI_BASE_URL"),
+)
 db = FAISS.from_documents(texts, embeddings)
 
 # 4. 检索相关内容
@@ -45,9 +52,13 @@ prompt = PromptTemplate(
     template=template
 )
 
-llm = OpenAI(openai_api_key=os.getenv("OPENAI_API_KEY"))
+llm = ChatDeepSeek(
+    model="deepseek-ai/DeepSeek-V3",
+    api_key=os.getenv("SILICON_FLOW_API_KEY"),
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+)
 
 # 生成文本
 formatted_prompt = prompt.format(context=retrieved_content)
 response = llm.invoke(formatted_prompt)
-print(response)
+print(response.content)

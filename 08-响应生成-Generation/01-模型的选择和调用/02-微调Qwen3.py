@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+load_dotenv()
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -60,7 +62,7 @@ def main():
     training_args = TrainingArguments(
         output_dir=output_dir,
         num_train_epochs=1,  # 训练轮数
-        per_device_train_batch_size=4,  # 每个设备的batch大小
+        per_device_train_batch_size=1,  # 每个设备的batch大小, 本机A500 Laptop 4GB，batching会导致OOM
         gradient_accumulation_steps=4,  # 梯度累积步数
         learning_rate=2e-5,  # 学习率
         weight_decay=0.01,  # 权重衰减

@@ -1,6 +1,10 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
+import os
+from dotenv import load_dotenv
+load_dotenv()
 from llama_index.program.openai import OpenAIPydanticProgram
+from llama_index.llms.openai import OpenAI
 
 # 定义代码问题模型
 class CodeIssue(BaseModel):
@@ -19,7 +23,13 @@ class CodeAnalysis(BaseModel):
     recommendations: List[str] = Field(default_factory=list, description="改进建议")
 
 # 创建 OpenAI Pydantic Program
+llm = OpenAI(
+    model="gpt-4o-mini",
+    api_base=os.getenv("OPENAI_BASE_URL"),
+    api_key=os.getenv("OPENAI_API_KEY"),
+)
 program = OpenAIPydanticProgram.from_defaults(
+    llm=llm,
     output_cls=CodeAnalysis,
     prompt_template_str="""
 请分析以下代码，生成详细的分析报告：

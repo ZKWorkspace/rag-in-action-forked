@@ -28,8 +28,10 @@ def get_code_snippet() -> str:
                         return {'status': 500, 'message': str(e)}, 500
             """
 
-client = OpenAI(base_url="https://api.deepseek.com",
-                api_key=os.getenv("DEEPSEEK_API_KEY"))
+client = OpenAI(
+    base_url=os.getenv("SILICON_FLOW_BASE_URL"),
+    api_key=os.getenv("SILICON_FLOW_API_KEY"),
+)
 
 retrieved_content = get_code_snippet()
 
@@ -40,7 +42,7 @@ question = f"""
 """
 
 response = client.chat.completions.create(
-    model="deepseek-chat",
+    model="deepseek-ai/DeepSeek-V3",
     messages=[
         {"role": "system", "content": "你是一个有帮助的代码分析助手"},
         {"role": "user", "content": question}

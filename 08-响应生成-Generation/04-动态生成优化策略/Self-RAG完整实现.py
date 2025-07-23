@@ -1,9 +1,10 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()   
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
-from dotenv import load_dotenv
-load_dotenv()   
 
 # 定义要加载的URL列表
 urls = [
@@ -24,9 +25,13 @@ doc_splits = text_splitter.split_documents(docs_list)
 
 # 添加到向量数据库
 vectorstore = Chroma.from_documents(
-    documents=doc_splits,
+    documents=doc_splits[:64], # maximum allowed batch size 64
     collection_name="rag-chroma",
-    embedding=OpenAIEmbeddings(),
+    embedding=OpenAIEmbeddings(
+        model="BAAI/bge-m3",
+        base_url=os.getenv("SILICON_FLOW_BASE_URL"),
+        api_key=os.getenv("SILICON_FLOW_API_KEY"),
+    ),
 )
 retriever = vectorstore.as_retriever()
 
@@ -35,7 +40,7 @@ retriever = vectorstore.as_retriever()
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 # from langchain_core.pydantic_v1 import BaseModel, Field
-from langchain_openai import ChatOpenAI
+from langchain_deepseek import ChatDeepSeek
 
 # 数据模型
 class GradeDocuments(BaseModel):
@@ -46,7 +51,12 @@ class GradeDocuments(BaseModel):
     )
 
 # 配置LLM和函数调用
-llm = ChatOpenAI(model="gpt-4o", temperature=0)
+llm = ChatDeepSeek(
+    model="deepseek-ai/DeepSeek-V3",
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+    api_key=os.getenv("SILICON_FLOW_API_KEY"),
+    temperature=0
+)
 structured_llm_grader = llm.with_structured_output(GradeDocuments)
 
 # 提示词
@@ -77,7 +87,12 @@ from langchain_core.output_parsers import StrOutputParser
 prompt = hub.pull("rlm/rag-prompt")
 
 # LLM配置
-llm = ChatOpenAI(model_name="gpt-4o", temperature=0)
+llm = ChatDeepSeek(
+    model="deepseek-ai/DeepSeek-V3",
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+    api_key=os.getenv("SILICON_FLOW_API_KEY"),
+    temperature=0
+)
 
 # 后处理
 def format_docs(docs):
@@ -101,7 +116,12 @@ class GradeHallucinations(BaseModel):
     )
 
 # LLM配置
-llm = ChatOpenAI(model="gpt-4o", temperature=0)
+llm = ChatDeepSeek(
+    model="deepseek-ai/DeepSeek-V3",
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+    api_key=os.getenv("SILICON_FLOW_API_KEY"),
+    temperature=0
+)
 structured_llm_grader = llm.with_structured_output(GradeHallucinations)
 
 # 提示词
@@ -128,7 +148,12 @@ class GradeAnswer(BaseModel):
     )
 
 # LLM配置
-llm = ChatOpenAI(model="gpt-4o", temperature=0)
+llm = ChatDeepSeek(
+    model="deepseek-ai/DeepSeek-V3",
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+    api_key=os.getenv("SILICON_FLOW_API_KEY"),
+    temperature=0
+)
 structured_llm_grader = llm.with_structured_output(GradeAnswer)
 
 # 提示词
@@ -147,7 +172,12 @@ answer_grader.invoke({"question": question, "generation": generation})
 ### 问题重写器 ###
 
 # LLM配置
-llm = ChatOpenAI(model="gpt-3.5-turbo-0125", temperature=0)
+llm = ChatDeepSeek(
+    model="deepseek-ai/DeepSeek-V3",
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+    api_key=os.getenv("SILICON_FLOW_API_KEY"),
+    temperature=0
+)
 
 # 提示词
 system = """你是一个问题重写器，将输入问题转换为更适合向量存储检索的更好版本。\n 
@@ -364,19 +394,19 @@ workflow.add_conditional_edges(
 
 # 编译
 app = workflow.compile()
-# try:
-#     # 先获取 PNG 二进制数据
-#     png_data = app.get_graph(xray=True).draw_mermaid_png()
+try:
+    # 先获取 PNG 二进制数据
+    png_data = app.get_graph(xray=True).draw_mermaid_png()
 
-#     # 将二进制数据保存到当前目录下的 graph.png
-#     with open("08-响应生成-Generation/04-动态生成优化策略/graph.png", "wb") as f:
-#         f.write(png_data)
+    # 将二进制数据保存到当前目录下的 graph.png
+    with open("./graph.png", "wb") as f:
+        f.write(png_data)
 
-#     print("已保存为：graph.png")
-# except Exception as e:
-#     print(f"保存图片时出错: {e}")
+    print("已保存为：graph.png")
+except Exception as e:
+    print(f"保存图片时出错: {e}")
 
-# from pprint import pprint
+from pprint import pprint
 
 # # 运行示例1
 # inputs = {"question": "解释不同类型的智能体记忆是如何工作的？"}
@@ -389,13 +419,13 @@ app = workflow.compile()
 # # 最终生成
 # pprint(value["generation"])
 
-# # 运行示例2
-# inputs = {"question": "解释思维链提示是如何工作的？"}
-# for output in app.stream(inputs):
-#     for key, value in output.items():
-#         # 节点
-#         pprint(f"节点 '{key}':")
-#     pprint("\n---\n")
+# 运行示例2
+inputs = {"question": "解释思维链提示是如何工作的？"}
+for output in app.stream(inputs):
+    for key, value in output.items():
+        # 节点
+        pprint(f"节点 '{key}':")
+    pprint("\n---\n")
 
-# # 最终生成
-# pprint(value["generation"])
+# 最终生成
+pprint(value["generation"])

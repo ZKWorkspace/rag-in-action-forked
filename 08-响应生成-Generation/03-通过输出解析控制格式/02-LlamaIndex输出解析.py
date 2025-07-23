@@ -1,7 +1,14 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.response_synthesizers import get_response_synthesizer
 from llama_index.core.response_synthesizers.type import ResponseMode
 from llama_index.core.prompts import PromptTemplate
+from llama_index.llms.deepseek import DeepSeek
+from llama_index.llms.openai import OpenAI
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from pydantic import BaseModel, Field
 from typing import List
 
@@ -16,12 +23,26 @@ class GameInfo(BaseModel):
     reception: str = Field(description="市场反响")
 
 # 载入数据
+# llm = DeepSeek(
+#     model="deepseek-ai/DeepSeek-V3",
+#     api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+#     api_key=os.getenv("SILICON_FLOW_API_KEY"),
+# )
+llm_model = OpenAI(
+    model="gpt-4o-mini",
+    api_key=os.getenv("OPENAI_API_KEY"),
+    api_base=os.getenv("OPENAI_BASE_URL"),
+)
+embed_model = HuggingFaceEmbedding(
+    model_name="BAAI/bge-small-zh",
+)
 documents = SimpleDirectoryReader(input_files=["90-文档-Data/黑悟空/黑悟空wiki.txt"], encoding="utf-8").load_data()
-index = VectorStoreIndex.from_documents(documents)
+index = VectorStoreIndex.from_documents(documents, embed_model=embed_model)
 
 # 1. 基础解析模式 - 使用COMPACT模式
 print("=== 基础解析模式 ===")
 synthesizer = get_response_synthesizer(
+    llm=llm_model,
     response_mode=ResponseMode.COMPACT,
     verbose=True    # 显示详细信息
 )
@@ -32,6 +53,7 @@ print(response)
 # 2. 结构化解析模式 - 使用REFINE模式
 print("\n=== 结构化解析模式 ===")
 synthesizer = get_response_synthesizer(
+    llm=llm_model,
     response_mode=ResponseMode.REFINE,
     output_cls=GameInfo,  # 指定输出类
     verbose=True
@@ -50,6 +72,7 @@ table_prompt = PromptTemplate(
     template="请将以下游戏特点以表格形式展示：\n{query_str}\n格式要求：\n| 类别 | 内容 |\n|------|------|\n"
 )
 synthesizer = get_response_synthesizer(
+    llm=llm_model,
     response_mode=ResponseMode.TREE_SUMMARIZE,
     summary_template=table_prompt,
     verbose=True
@@ -64,6 +87,7 @@ bullet_prompt = PromptTemplate(
     template="请将以下游戏亮点以分点形式展示：\n{query_str}\n格式要求：\n1. \n2. \n3. "
 )
 synthesizer = get_response_synthesizer(
+    llm=llm_model,
     response_mode=ResponseMode.COMPACT_ACCUMULATE,
     text_qa_template=bullet_prompt,
     verbose=True,
@@ -79,6 +103,7 @@ story_prompt = PromptTemplate(
     template="请将以下游戏故事以时间线形式展示：\n{query_str}\n格式要求：\n- 时间点：事件\n"
 )
 synthesizer = get_response_synthesizer(
+    llm=llm_model,
     response_mode=ResponseMode.SIMPLE_SUMMARIZE,
     text_qa_template=story_prompt,
     verbose=True

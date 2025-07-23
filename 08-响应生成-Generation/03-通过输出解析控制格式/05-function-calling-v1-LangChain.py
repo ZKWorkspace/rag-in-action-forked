@@ -1,5 +1,8 @@
 from langchain_deepseek import ChatDeepSeek 
 from pydantic import BaseModel, Field
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 # 定义工具模式
 class get_weather(BaseModel):
@@ -8,7 +11,11 @@ class get_weather(BaseModel):
     temperature: float = Field(..., description="温度")
 
 # 初始化大模型
-llm = ChatDeepSeek(model="deepseek-chat")
+llm = ChatDeepSeek(
+    model="deepseek-ai/DeepSeek-V3",
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+    api_key=os.getenv("SILICON_FLOW_API_KEY"),
+)
 
 # 绑定工具
 llm_with_tools = llm.bind_tools([get_weather])

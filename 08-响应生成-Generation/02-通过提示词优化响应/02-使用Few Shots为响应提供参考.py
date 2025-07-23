@@ -1,9 +1,9 @@
 from langchain.prompts import PromptTemplate
 from langchain_community.document_loaders import TextLoader
 from langchain.text_splitter import CharacterTextSplitter
-from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAI
+from langchain_deepseek import ChatDeepSeek
 import os
 
 # 示例数据
@@ -39,7 +39,11 @@ examples = [
 ]
 
 # 创建向量数据库
-embeddings = OpenAIEmbeddings(openai_api_key=os.getenv("OPENAI_API_KEY"))
+embeddings = OpenAIEmbeddings(
+    model="BAAI/bge-m3",
+    api_key=os.getenv("SILICON_FLOW_API_KEY"),
+    base_url=os.getenv("SILICON_FLOW_BASE_URL"),
+)
 example_texts = [ex["context"] for ex in examples]
 db = FAISS.from_texts(example_texts, embeddings)
 
@@ -48,7 +52,7 @@ current_issue = """某零售连锁企业的客户投诉率在过去三个月上�
 
 # 检索最相似的示例
 docs = db.similarity_search(current_issue, k=1)
-most_similar_example = next(ex for ex in examples if ex["context"] == docs[0].page_content)
+most_similar_example = next((ex for ex in examples if ex["context"] == docs[0].page_content), None)
 
 # 构建提示词
 prompt = """这是一个企业问题分析示例：
@@ -66,7 +70,11 @@ prompt = """这是一个企业问题分析示例：
 """
 
 # 创建LLM
-llm = OpenAI(openai_api_key=os.getenv("OPENAI_API_KEY"))
+llm = ChatDeepSeek(
+    model="deepseek-ai/DeepSeek-V3",
+    api_key=os.getenv("SILICON_FLOW_API_KEY"),
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+)
 
 # 格式化提示词并生成回答
 formatted_prompt = prompt.format(
@@ -78,4 +86,4 @@ formatted_prompt = prompt.format(
 print(formatted_prompt)
 
 response = llm.invoke(formatted_prompt)
-print(response)
+print(response.content)

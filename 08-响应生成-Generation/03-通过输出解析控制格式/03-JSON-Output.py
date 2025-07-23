@@ -6,8 +6,8 @@ import os
 load_dotenv()
 
 client = OpenAI(
-    api_key=os.getenv("DEEPSEEK_API_KEY"),
-    base_url="https://api.deepseek.com",
+    api_key=os.getenv("SILICON_FLOW_API_KEY"),
+    base_url=os.getenv("SILICON_FLOW_BASE_URL"),
 )
 
 system_prompt = """
@@ -29,7 +29,7 @@ messages = [{"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}]
 
 response = client.chat.completions.create(
-    model="deepseek-chat",
+    model="deepseek-ai/DeepSeek-V3",
     messages=messages,
     response_format={
         'type': 'json_object'

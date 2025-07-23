@@ -7,15 +7,15 @@ load_dotenv()
 
 def send_messages(messages):
     response = client.chat.completions.create(
-        model="deepseek-chat",
+        model="deepseek-ai/DeepSeek-V3",
         messages=messages,
         tools=tools
     )
     return response.choices[0].message
 
 client = OpenAI(
-    api_key=os.getenv("DEEPSEEK_API_KEY"),
-    base_url="https://api.deepseek.com",
+    api_key=os.getenv("SILICON_FLOW_API_KEY"),
+    base_url=os.getenv("SILICON_FLOW_BASE_URL"),
 )
 
 tools = [
