@@ -7,6 +7,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_deepseek import ChatDeepSeek
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 from langchain.schema import Document
@@ -20,17 +21,23 @@ from langgraph.graph import END, StateGraph, START
 #         langchainhub chromadb langchain langgraph tavily-python
 
 # ----- 1. 设置 API 密钥 -----
-def _set_env(var: str):
-    if not os.environ.get(var):
-        os.environ[var] = getpass.getpass(f"{var}: ")
+# def _set_env(var: str):
+#     if not os.environ.get(var):
+#         os.environ[var] = getpass.getpass(f"{var}: ")
 
-_set_env("OPENAI_API_KEY")
-_set_env("COHERE_API_KEY")
-_set_env("TAVILY_API_KEY")
+# _set_env("OPENAI_API_KEY")
+# _set_env("COHERE_API_KEY")
+# _set_env("TAVILY_API_KEY")
+from dotenv import load_dotenv
+load_dotenv()
 
 # ----- 2. 构建向量索引 -----
 # 2.1 Embedding 模型
-embd = OpenAIEmbeddings()
+embd = OpenAIEmbeddings(
+    model="BAAI/bge-m3",
+    api_key=os.getenv("SILICON_FLOW_API_KEY"),
+    base_url=os.getenv("SILICON_FLOW_BASE_URL"),
+)
 # 2.2 文档来源 URL 列表
 urls = [
     "https://lilianweng.github.io/posts/2023-06-23-agent/",
@@ -53,7 +60,13 @@ class RouteQuery(BaseModel):
         ..., description="根据问题选择 'vectorstore' 或 'web_search'."
     )
 
-llm_router = ChatOpenAI(model="gpt-4o", temperature=0)
+# llm_router = ChatOpenAI(model="gpt-4o", temperature=0)
+llm_router = ChatDeepSeek(
+    temperature=0,
+    model="deepseek-ai/DeepSeek-V3",
+    api_key=os.getenv("SILICON_FLOW_API_KEY"),
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+)
 structured_router = llm_router.with_structured_output(RouteQuery)
 route_prompt = ChatPromptTemplate.from_messages([
     ("system", 
@@ -67,7 +80,13 @@ class GradeDocuments(BaseModel):
     """检索文档的相关性评分: 'yes' 或 'no'."""
     binary_score: str = Field(description="相关: 'yes'|'no'.")
 
-llm_doc_grader = ChatOpenAI(model="gpt-4o", temperature=0)
+# llm_doc_grader = ChatOpenAI(model="gpt-4o", temperature=0)
+llm_doc_grader = ChatDeepSeek(
+    temperature=0,
+    model="deepseek-ai/DeepSeek-V3",
+    api_key=os.getenv("SILICON_FLOW_API_KEY"),
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+)
 structured_doc_grader = llm_doc_grader.with_structured_output(GradeDocuments)
 doc_grade_prompt = ChatPromptTemplate.from_messages([
     ("system", 
@@ -81,7 +100,13 @@ class GradeHallucinations(BaseModel):
     """检测回答是否基于事实: 'yes'|'no'."""
     binary_score: str = Field(description="基于事实: 'yes'|'no'.")
 
-llm_hallu_grader = ChatOpenAI(model="gpt-4o", temperature=0)
+# llm_hallu_grader = ChatOpenAI(model="gpt-4o", temperature=0)
+llm_hallu_grader = ChatDeepSeek(
+    temperature=0,
+    model="deepseek-ai/DeepSeek-V3",
+    api_key=os.getenv("SILICON_FLOW_API_KEY"),
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+)
 structured_hallu = llm_hallu_grader.with_structured_output(GradeHallucinations)
 hallu_prompt = ChatPromptTemplate.from_messages([
     ("system", "你是幻觉检测器。判断回答是否基于提供的事实。返回 'yes' 或 'no'."),
@@ -94,7 +119,13 @@ class GradeAnswer(BaseModel):
     """判断回答是否回答了问题: 'yes'|'no'."""
     binary_score: str = Field(description="回答完整: 'yes'|'no'.")
 
-llm_ans_grader = ChatOpenAI(model="gpt-4o", temperature=0)
+# llm_ans_grader = ChatOpenAI(model="gpt-4o", temperature=0)
+llm_ans_grader = ChatDeepSeek(
+    temperature=0,
+    model="deepseek-ai/DeepSeek-V3",
+    api_key=os.getenv("SILICON_FLOW_API_KEY"),
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+)
 structured_ans = llm_ans_grader.with_structured_output(GradeAnswer)
 ans_prompt = ChatPromptTemplate.from_messages([
     ("system", "你是回答质量评分器。判断回答是否解决了问题。返回 'yes' 或 'no'."),
@@ -104,8 +135,13 @@ answer_grader = ans_prompt | structured_ans
 
 # ----- 7. 问题重写器 -----
 from langchain.schema import Document
-
-question_rewriter_llm = ChatOpenAI(model="gpt-4o", temperature=0)
+# question_rewriter_llm = ChatOpenAI(model="gpt-4o", temperature=0)
+question_rewriter_llm = ChatDeepSeek(
+    temperature=0,
+    model="deepseek-ai/DeepSeek-V3",
+    api_key=os.getenv("SILICON_FLOW_API_KEY"),
+    api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+)
 re_write_prompt = ChatPromptTemplate.from_messages([
     ("system", 
      "将输入问题重写为更适合向量检索的版本，保持语义意图。"),
@@ -129,7 +165,7 @@ class GraphState(BaseModel):
 # 检索节点
 def retrieve_node(state: GraphState):
     question = state.question
-    docs = retriever.get_relevant_documents(question)
+    docs = retriever.invoke(question)
     return {"documents": docs, "question": question}
 
 # 文档评分和过滤
@@ -209,6 +245,13 @@ wf.add_conditional_edges(
 )
 
 app = wf.compile()
+
+# 尝试打印 ASCII 图形，如果失败则跳过
+try:
+    app.get_graph().print_ascii()
+except Exception as e:
+    print(f"ASCII 图形渲染失败: {e}")
+    print("这通常是由于图形结构过于复杂导致的，但不影响程序运行。")
 try:
     # 先获取 PNG 二进制数据
     from langchain_core.runnables.graph import MermaidDrawMethod

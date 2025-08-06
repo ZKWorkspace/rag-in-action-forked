@@ -6,6 +6,7 @@ from pprint import pprint
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_deepseek import ChatDeepSeek
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.tools.retriever import create_retriever_tool
 from langchain_core.messages import BaseMessage, HumanMessage
@@ -18,10 +19,12 @@ from langgraph.graph import END, StateGraph, START
 from langgraph.prebuilt import ToolNode, tools_condition
 
 # ----- 1. 设置 API 密钥 -----
-def _set_env(key: str):
-    if key not in os.environ:
-        os.environ[key] = getpass.getpass(f"{key}: ")
-_set_env("OPENAI_API_KEY")
+# def _set_env(key: str):
+#     if key not in os.environ:
+#         os.environ[key] = getpass.getpass(f"{key}: ")
+# _set_env("OPENAI_API_KEY")
+from dotenv import load_dotenv
+load_dotenv()
 
 # ----- 2. 构建检索器并创建检索工具 -----
 urls = [
@@ -36,9 +39,12 @@ docs_list = [item for sublist in docs for item in sublist]
 splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(chunk_size=100, chunk_overlap=50)
 doc_splits = splitter.split_documents(docs_list)
 # 向量存储
-vectorstore = Chroma.from_documents(documents=doc_splits,
+vectorstore = Chroma.from_documents(documents=doc_splits[:64], # maximum allowed batch size is 64 for bge-m3
                                    collection_name="rag-chroma",
-                                   embedding=OpenAIEmbeddings())
+                                   embedding=OpenAIEmbeddings(
+                                       model="BAAI/bge-m3",
+                                       api_key=os.getenv("SILICON_FLOW_API_KEY"),
+                                       base_url=os.getenv("SILICON_FLOW_BASE_URL")))
 retriever = vectorstore.as_retriever()
 # 创建检索工具
 retriever_tool = create_retriever_tool(
@@ -60,7 +66,13 @@ class AgentState(TypedDict):
 def grade_documents(state: AgentState) -> AgentState:
     class Grade(BaseModel):
         binary_score: str = Field(description="相关性评分 'yes' or 'no'.")
-    model = ChatOpenAI(temperature=0, model="gpt-4o", streaming=True)
+    # model = ChatOpenAI(temperature=0, model="gpt-4o", streaming=True)
+    model = ChatDeepSeek(
+        temperature=0,
+        model="deepseek-ai/DeepSeek-V3",
+        api_key=os.getenv("SILICON_FLOW_API_KEY"),
+        api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+        streaming=True)
     grader = PromptTemplate(
         template="""
 你是一个相关性评分器。
@@ -102,7 +114,13 @@ def retrieve(state: AgentState) -> AgentState:
 
 # Agent决策节点
 def agent(state: AgentState) -> AgentState:
-    model = ChatOpenAI(temperature=0, model="gpt-4o", streaming=True)
+    # model = ChatOpenAI(temperature=0, model="gpt-4o", streaming=True)
+    model = ChatDeepSeek(
+        temperature=0,
+        model="deepseek-ai/DeepSeek-V3",
+        api_key=os.getenv("SILICON_FLOW_API_KEY"),
+        api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+        streaming=True)
     model = model.bind_tools(tools)
     msgs = state.get('messages') or []
     if not msgs:
@@ -133,7 +151,13 @@ def rewrite(state: AgentState) -> AgentState:
     msgs = state['messages']
     question = msgs[0].content
     prompt = HumanMessage(content=f"重写以下问题以更好检索文档：\n{question}\n")
-    model = ChatOpenAI(temperature=0, model="gpt-4o", streaming=True)
+    # model = ChatOpenAI(temperature=0, model="gpt-4o", streaming=True)
+    model = ChatDeepSeek(
+        temperature=0,
+        model="deepseek-ai/DeepSeek-V3",
+        api_key=os.getenv("SILICON_FLOW_API_KEY"),
+        api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+        streaming=True)
     resp = model.invoke([prompt])
     return {
         "messages": [resp],  # 这里重置消息，只保留新问题
@@ -148,7 +172,13 @@ def generate(state: AgentState) -> AgentState:
     question = msgs[0].content
     docs = msgs[-1].content
     rag_prompt = hub.pull("rlm/rag-prompt")
-    llm = ChatOpenAI(model_name="gpt-4o", temperature=0, streaming=True)
+    # llm = ChatOpenAI(model_name="gpt-4o", temperature=0, streaming=True)
+    llm = ChatDeepSeek(
+        temperature=0,
+        model="deepseek-ai/DeepSeek-V3",
+        api_key=os.getenv("SILICON_FLOW_API_KEY"),
+        api_base=os.getenv("SILICON_FLOW_BASE_URL"),
+        streaming=True)
     chain = rag_prompt | llm | StrOutputParser()
     answer = chain.invoke({"context": docs, "question": question})
     return {
@@ -174,6 +204,13 @@ wf.add_edge("generate", END)
 wf.add_edge("rewrite", "agent")
 
 app = wf.compile()
+
+# 尝试打印 ASCII 图形，如果失败则跳过
+try:
+    app.get_graph().print_ascii()
+except Exception as e:
+    print(f"ASCII 图形渲染失败: {e}")
+    print("这通常是由于图形结构过于复杂导致的，但不影响程序运行。")
 # try:
 #     # 先获取 PNG 二进制数据
 #     from langchain_core.runnables.graph import MermaidDrawMethod

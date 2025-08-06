@@ -141,9 +141,13 @@ API变更说明：
 """
 
 # 导入必要的库
+import os
+import dotenv
+dotenv.load_dotenv()
 from pymilvus.model.dense import SentenceTransformerEmbeddingFunction
 from pymilvus.model.hybrid import BGEM3EmbeddingFunction
 from pymilvus.model.reranker import CohereRerankFunction
+from pymilvus.model.reranker import BGERerankFunction
 
 from typing import List, Dict, Any
 from typing import Callable
@@ -157,9 +161,6 @@ from tqdm import tqdm
 import json
 # import anthropic  # 注释掉Claude API，改用OpenAI
 import openai  # 新增OpenAI API支持
-import os
-import dotenv
-dotenv.load_dotenv()
 
 class MilvusContextualRetriever:
     """
@@ -191,6 +192,7 @@ class MilvusContextualRetriever:
     def __init__(
         self,
         uri="milvus.db",
+        token="",
         collection_name="contexual_bgem3",
         dense_embedding_function=None,
         use_sparse=False,
@@ -239,7 +241,7 @@ class MilvusContextualRetriever:
         # 对于Milvus-lite，uri是本地路径，如"./milvus.db"
         # 对于Milvus独立服务，uri类似"http://localhost:19530"
         # 对于Zilliz Cloud，请设置`uri`和`token`
-        self.client = MilvusClient(uri)
+        self.client = MilvusClient(uri, token)
 
         self.embedding_function = dense_embedding_function
 
@@ -386,6 +388,7 @@ class MilvusContextualRetriever:
             collection_name=self.collection_name,
             data=[data]
         )
+        self.client.flush(collection_name=self.collection_name)
 
     def insert_contextualized_data(self, doc_content, chunk_content, metadata):
         """
@@ -445,8 +448,9 @@ class MilvusContextualRetriever:
         # === OpenAI GPT API调用（新版本） ===
         # 调用OpenAI GPT API生成上下文化的文本块
         response = self.llm_client.chat.completions.create(
-            model="gpt-3.5-turbo",  # 使用GPT-3.5-turbo，经济高效
+            # model="gpt-3.5-turbo",  # 使用GPT-3.5-turbo，经济高效
             # model="gpt-4",        # 可选择GPT-4获得更好效果
+            model="deepseek-ai/DeepSeek-V3",
             max_tokens=1000,        # 限制输出长度
             temperature=0,          # 确保输出的一致性和可重复性
             messages=[
@@ -835,9 +839,9 @@ def main():
     每个实验都使用相同的评估数据集，确保比较的公平性
     """
     # 替换这些为你的实际API密钥
-    cohere_api_key = os.getenv("COHERE_API_KEY")      # Cohere重排序API密钥
+    # cohere_api_key = os.getenv("COHERE_API_KEY")      # Cohere重排序API密钥
     # anthropic_api_key = os.getenv("CLAUDE_API_KEY")   # Claude API密钥（已注释）
-    openai_api_key = os.getenv("OPENAI_API_KEY")      # OpenAI API密钥（新增）
+    # openai_api_key = os.getenv("OPENAI_API_KEY")      # OpenAI API密钥（新增）
     
     # 下载示例数据
     download_data()
@@ -852,10 +856,18 @@ def main():
     
     # 初始化各种模型和函数
     dense_ef = SentenceTransformerEmbeddingFunction(model_name='BAAI/bge-large-zh')  # 使用中文优化的BGE模型
-    cohere_rf = CohereRerankFunction(api_key=cohere_api_key)  # Cohere重排序函数
+    # cohere_rf = CohereRerankFunction(api_key=cohere_api_key)  # Cohere重排序函数
+    bge_rf = BGERerankFunction(
+        api_key=os.getenv("SILICON_FLOW_API_KEY"),
+        base_url=os.getenv("SILICON_FLOW_BASE_URL"),
+    )  # BGE重排序函数，默认使用模型BAAI/bge-reranker-v2-m3，模型下载到本地huggingface的缓存目录下
     
     # === OpenAI客户端初始化（新版本） ===
-    openai_client = openai.OpenAI(api_key=openai_api_key)  # OpenAI客户端
+    # openai_client = openai.OpenAI(api_key=openai_api_key)  # OpenAI客户端
+    deepseek_client = openai.OpenAI(
+        api_key=os.getenv("SILICON_FLOW_API_KEY"),
+        base_url=os.getenv("SILICON_FLOW_BASE_URL"),
+    )  # DeepSeek客户端
     
     # === Claude客户端初始化（原版本，已注释） ===
     # anthropic_client = anthropic.Anthropic(api_key=anthropic_api_key)  # Claude客户端
@@ -867,8 +879,9 @@ def main():
     print("这是基线实验，使用原始文本块进行检索，没有任何增强")
     
     standard_retriever = MilvusContextualRetriever(
-        uri="standard.db", 
-        collection_name="standard", 
+        uri="http://172.17.19.130:19530", 
+        token=os.getenv("MILVUS_TOKEN"),
+        collection_name="contextual_retrieval_baseline", 
         dense_embedding_function=dense_ef
     )
     
@@ -915,11 +928,12 @@ def main():
     print("使用OpenAI GPT为每个文本块添加文档上下文，解决语义隔离问题")
     
     contextual_retriever = MilvusContextualRetriever(
-        uri="contextual.db",
-        collection_name="contextual",
+        uri="http://172.17.19.130:19530", 
+        token=os.getenv("MILVUS_TOKEN"),
+        collection_name="contextual_retrieval",
         dense_embedding_function=dense_ef,
         use_contextualize_embedding=True,  # 启用上下文化
-        llm_client=openai_client,  # 使用OpenAI客户端
+        llm_client=deepseek_client,  # 使用OpenAI客户端
         # anthropic_client=anthropic_client,  # 原Claude客户端（已注释）
     )
     
@@ -952,7 +966,7 @@ def main():
     
     # 启用重排序功能
     contextual_retriever.use_reranker = True
-    contextual_retriever.rerank_function = cohere_rf
+    contextual_retriever.rerank_function = bge_rf
     
     # 评估带重排序的检索性能
     reranker_results = evaluate_db(contextual_retriever, "evaluation_set.jsonl", 5)
