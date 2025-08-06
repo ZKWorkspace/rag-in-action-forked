@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+load_dotenv()
 from deepeval.metrics import ContextualPrecisionMetric, AnswerRelevancyMetric
 from deepeval.test_case import LLMTestCase
 
@@ -9,7 +11,7 @@ test_case = LLMTestCase(
     retrieval_context=["所有顾客都有资格享受30天无理由全额退款服务。"]
 )
 
-# 定义评估指标
+# 定义评估指标，默认使用OpenAI的模型
 contextual_precision = ContextualPrecisionMetric()
 answer_relevancy = AnswerRelevancyMetric()
 

@@ -1,4 +1,6 @@
 import os
+from dotenv import load_dotenv
+load_dotenv() # 加载.env文件中的环境变量
 import chromadb
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 from openai import OpenAI as OpenAIClient  # 避免与TruLens的OpenAI类名冲突
@@ -9,17 +11,21 @@ from openai import OpenAI as OpenAIClient  # 避免与TruLens的OpenAI类名冲�
 # - Feedback: 定义评估指标，如相关性、真实性等。
 # - TruApp: 将你的应用包装起来，使其可被Trulens监控。
 # - instrument: 一个装饰器，用于标记需要跟踪的具体函数。
-from trulens.core import TruSession, Feedback, Select
-from trulens.apps.app import TruApp, instrument
-from trulens.providers.openai import OpenAI as TruLensOpenAI
+from trulens.core import TruSession, Feedback, Select # pip install trulens
+from trulens.apps.app import TruApp, instrument # pip install trulens-apps-langgraph
+from trulens.providers.openai import OpenAI as TruLensOpenAI # pip install trulens-providers-openai
+from trulens.dashboard.run import run_dashboard
 import numpy as np
 
 # 设置API密钥
 # os.environ["OPENAI_API_KEY"] = "your_key_here"
 
 # 初始化嵌入函数
-embedding_function = OpenAIEmbeddingFunction(api_key=os.environ.get("OPENAI_API_KEY"),
-                                             model_name="text-embedding-ada-002")
+embedding_function = OpenAIEmbeddingFunction(
+    model_name="text-embedding-ada-002",
+    api_key=os.environ.get("OPENAI_API_KEY"),
+    api_base=os.environ.get("OPENAI_BASE_URL"),
+)
 chroma_client = chromadb.Client()
 vector_store = chroma_client.get_or_create_collection("Info", embedding_function=embedding_function)
 
@@ -44,10 +50,13 @@ class RAG:
     @instrument
     def generate_completion(self, query: str, context: list):
         """生成回答"""
-        oai_client = OpenAIClient(api_key=os.environ.get("OPENAI_API_KEY"))
+        oai_client = OpenAIClient(
+            api_key=os.environ.get("OPENAI_API_KEY"),
+            base_url=os.environ.get("OPENAI_BASE_URL")
+        )
         context_str = "\n".join(context) if context else "No context available."
         completion = oai_client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             messages=[{"role": "user", "content": f"Context: {context_str}\nQuestion: {query}"}]
         ).choices[0].message.content
         return completion
@@ -69,7 +78,11 @@ session.reset_database()
 # 初始化TruLens的OpenAI提供者
 # Provider是Trulens用来执行评估的"裁判"。这里我们使用OpenAI的gpt-4模型。
 # 这些评估本身就是通过向LLM提出问题来完成的，例如："给定的回答是否与上下文一致？"
-provider = TruLensOpenAI(model_engine="gpt-4")
+provider = TruLensOpenAI(
+    model_engine="gpt-4o-mini",
+    api_key=os.environ.get("OPENAI_API_KEY"),
+    base_url=os.environ.get("OPENAI_BASE_URL"),
+)
 
 # 定义评估指标 (Feedback Functions)
 # Feedback是Trulens的核心概念，用于定义我们关心的评估维度。
@@ -122,3 +135,11 @@ with tru_rag as recording:
 # 它会显示每个Feedback的平均得分，便于我们快速了解应用的整体性能。
 # 这个看板对于比较不同版本应用（例如，更改提示、模型或检索策略）的性能差异非常有用。
 print(session.get_leaderboard())
+
+# 启动 Trulens Dashboard
+# Dashboard 提供了一个可视化的 Web 界面来查看评估结果
+# 默认会在 http://localhost:8501 启动
+run_dashboard(
+    session=session,
+    port=8501,
+)

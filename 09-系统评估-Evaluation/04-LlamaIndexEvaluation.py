@@ -1,4 +1,6 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
 import asyncio
 import random
 import nest_asyncio
@@ -23,7 +25,12 @@ from llama_index.core.evaluation.eval_utils import get_responses, get_results_df
 # 1. 配置 LLM、Embedding、文本切分器
 # --------------------------------------------------
 # 设置 LLM（大模型）和 Embedding（向量模型）
-llm = OpenAI(model="gpt-3.5-turbo", temperature=0.1)
+llm = OpenAI(
+    model="gpt-4o-mini",
+    api_base=os.environ.get("OPENAI_BASE_URL"),
+    api_key=os.environ.get("OPENAI_API_KEY"),
+    temperature=0.1
+)
 embed_model = HuggingFaceEmbedding(
     model_name="sentence-transformers/all-mpnet-base-v2", max_length=512
 )
@@ -40,7 +47,7 @@ Settings.text_splitter = text_splitter
 
 # 2. 加载 PDF 文档
 # --------------------------------------------------
-pdf_path = "/home/huangj2/Documents/rag-in-action/90-文档-Data/复杂PDF/IPCC_AR6_WGII_Chapter03.pdf"
+pdf_path = "90-文档-Data/复杂PDF/IPCC_AR6_WGII_Chapter03.pdf"
 documents = SimpleDirectoryReader(input_files=[pdf_path]).load_data()
 
 # 3. 文本切分为节点
@@ -118,10 +125,28 @@ eval_dataset = QueryResponseDataset.from_json("90-文档-Data/复杂PDF/ipcc_eva
 
 # 7. 构建评测器
 # --------------------------------------------------
-evaluator_c = CorrectnessEvaluator(llm=OpenAI(model="gpt-4"))
+evaluator_c = CorrectnessEvaluator(
+    llm=OpenAI(
+        model="gpt-4o-mini",
+        api_base=os.environ.get("OPENAI_BASE_URL"),
+        api_key=os.environ.get("OPENAI_API_KEY"),
+    )
+)
 evaluator_s = SemanticSimilarityEvaluator()
-evaluator_r = RelevancyEvaluator(llm=OpenAI(model="gpt-4"))
-evaluator_f = FaithfulnessEvaluator(llm=OpenAI(model="gpt-4"))
+evaluator_r = RelevancyEvaluator(
+    llm=OpenAI(
+        model="gpt-4o-mini",
+        api_base=os.environ.get("OPENAI_BASE_URL"),
+        api_key=os.environ.get("OPENAI_API_KEY"),
+    )
+)
+evaluator_f = FaithfulnessEvaluator(
+    llm=OpenAI(
+        model="gpt-4o-mini",
+        api_base=os.environ.get("OPENAI_BASE_URL"),
+        api_key=os.environ.get("OPENAI_API_KEY"),
+    )
+)
 # pairwise_evaluator = PairwiseComparisonEvaluator(llm=OpenAI(model="gpt-4"))
 
 evaluator_dict = {

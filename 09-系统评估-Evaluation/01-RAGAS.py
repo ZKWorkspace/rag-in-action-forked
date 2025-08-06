@@ -7,12 +7,20 @@ from ragas.metrics import Faithfulness, AnswerRelevancy
 from ragas.llms import LangchainLLMWrapper
 from ragas.embeddings import LangchainEmbeddingsWrapper
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_deepseek import ChatDeepSeek
 from langchain_huggingface import HuggingFaceEmbeddings
 from ragas import evaluate
 
 # 准备评估用的LLM（使用GPT-3.5）
 # 使用Ragas的LangchainLLMWrapper包装器来包装LangChain的ChatOpenAI模型
-llm = LangchainLLMWrapper(ChatOpenAI(model_name="gpt-3.5-turbo"))
+# llm = LangchainLLMWrapper(ChatOpenAI(model_name="gpt-3.5-turbo"))
+llm = LangchainLLMWrapper(
+    ChatDeepSeek(
+        model_name="deepseek-ai/DeepSeek-V3",
+        api_key=os.getenv("SILICON_FLOW_API_KEY"),
+        api_base=os.getenv("SILICON_FLOW_BASE_URL")
+    )
+)
 
 # 准备数据集
 # 这个数据集包含了问题、生成的答案以及相关的上下文信息
@@ -76,7 +84,13 @@ opensource_embedding = LangchainEmbeddingsWrapper(
     HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 )
 # 2. OpenAI的 text-embedding-ada-002 模型
-openai_embedding = LangchainEmbeddingsWrapper(OpenAIEmbeddings(model="text-embedding-ada-002"))
+openai_embedding = LangchainEmbeddingsWrapper(
+    OpenAIEmbeddings(
+        model="text-embedding-ada-002",
+        openai_api_key=os.getenv("OPENAI_API_KEY"),
+        openai_api_base=os.getenv("OPENAI_BASE_URL")
+    )
+)
 
 # 创建答案相关性评估指标
 # 分别为两种embedding模型创建AnswerRelevancy评估指标
